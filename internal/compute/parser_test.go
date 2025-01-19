@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestParseRequestParser(t *testing.T) {
+func TestParseRequestParserNeg(t *testing.T) {
 	t.Parallel()
 
 	parser := NewRequestParser()
@@ -25,7 +25,22 @@ func TestParseRequestParser(t *testing.T) {
 		"incorrect command": {
 			in:    "somecmd",
 			query: Query{},
-			err:   fmt.Errorf("invalid command SOMECMD"),
+			err:   fmt.Errorf("invalid command somecmd"),
+		},
+		"incorrect command with lower case get": {
+			in:    "get",
+			query: Query{},
+			err:   fmt.Errorf("invalid command get"),
+		},
+		"incorrect command with lower case set": {
+			in:    "set",
+			query: Query{},
+			err:   fmt.Errorf("invalid command set"),
+		},
+		"incorrect command with lower case del": {
+			in:    "del",
+			query: Query{},
+			err:   fmt.Errorf("invalid command del"),
 		},
 		"GET: without args": {
 			in:    "GET",
@@ -70,6 +85,12 @@ func TestParseRequestParser(t *testing.T) {
 			assert.Equal(t, err, test.err)
 		})
 	}
+}
+
+func TestParseRequestParserPos(t *testing.T) {
+	t.Parallel()
+
+	parser := NewRequestParser()
 
 	posTests := map[string]struct {
 		in    string

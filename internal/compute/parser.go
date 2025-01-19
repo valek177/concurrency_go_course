@@ -6,15 +6,6 @@ import (
 	"strings"
 )
 
-const (
-	// CommandGet is a get command
-	CommandGet = "GET"
-	// CommandSet is a set command
-	CommandSet = "SET"
-	// CommandDelete is a delete command
-	CommandDelete = "DEL"
-)
-
 // Parser is interface for parser
 type Parser interface {
 	Parse(query string) (Query, error)
@@ -36,7 +27,7 @@ func (r *RequestParser) Parse(query string) (Query, error) {
 		return Query{}, fmt.Errorf("invalid query length (0)")
 	}
 
-	command := strings.ToUpper(queryFields[0])
+	command := queryFields[0]
 
 	allCommands := []string{CommandGet, CommandSet, CommandDelete}
 	if !slices.Contains(allCommands, command) {

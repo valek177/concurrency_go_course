@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap"
 
 	"concurrency_go_course/internal/compute"
+	"concurrency_go_course/internal/service"
 	"concurrency_go_course/internal/storage"
 	"concurrency_go_course/pkg/logger"
 )
@@ -19,9 +20,11 @@ func main() {
 	logger.InitLogger(LogLevel)
 
 	storage := storage.NewEngine()
-	requestParser := compute.NewRequestParser()
 
-	handler := compute.NewCompute(storage, requestParser)
+	requestParser := compute.NewRequestParser()
+	compute := compute.NewCompute(requestParser)
+
+	service := service.NewService(storage, compute)
 
 	logger.Debug("App started")
 
@@ -35,7 +38,7 @@ func main() {
 			continue
 		}
 
-		res, err := handler.Handle(query)
+		res, err := service.Handle(query)
 		if err != nil {
 			logger.Error("Failed to handle query", zap.String("query", query),
 				zap.Error(err))
