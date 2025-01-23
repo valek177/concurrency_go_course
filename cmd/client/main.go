@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"io"
 	"os"
 
 	"concurrency_go_course/internal/network"
@@ -17,6 +16,8 @@ func init() {
 }
 
 func main() {
+	flag.Parse()
+
 	client, err := network.NewClient(address)
 	if err != nil {
 		fmt.Println("Error starting client:", err.Error())
@@ -28,7 +29,7 @@ func main() {
 	fmt.Println("Enter request:")
 	for {
 		request, err := reader.ReadBytes('\n')
-		if err != nil && err != io.EOF {
+		if err != nil {
 			fmt.Printf("Error reading request: %v\n", err)
 			continue
 		}
