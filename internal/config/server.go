@@ -6,10 +6,10 @@ import (
 	"strconv"
 	"strings"
 
-	"concurrency_go_course/pkg/logger"
-
 	"github.com/joho/godotenv"
 	"gopkg.in/yaml.v2"
+
+	"concurrency_go_course/pkg/logger"
 )
 
 const (
@@ -24,7 +24,7 @@ const (
 	defaultIdleTimeout    = "5m"
 
 	defaultLogLevel  = "info"
-	defaultLogOutput = "/log/output.log"
+	defaultLogOutput = "log/output.log"
 )
 
 var blockSizes = map[string]int{

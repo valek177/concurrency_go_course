@@ -6,14 +6,14 @@ import (
 	"net"
 	"time"
 
+	"go.uber.org/zap"
+
 	"concurrency_go_course/internal/compute"
 	"concurrency_go_course/internal/config"
 	"concurrency_go_course/internal/service"
 	"concurrency_go_course/internal/storage"
 	"concurrency_go_course/pkg/logger"
 	"concurrency_go_course/pkg/sema"
-
-	"go.uber.org/zap"
 )
 
 type TCPServer struct {
