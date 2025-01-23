@@ -12,7 +12,7 @@ import (
 var (
 	globalLogger *zap.Logger
 
-	loggerFilename        = "logs/app.log"
+	defaultLoggerFilename = "log/output.log"
 	loggerMaxSizeMb       = 10
 	loggerMaxBackupsCount = 3
 	loggerMaxAgeDays      = 7
@@ -24,8 +24,8 @@ func MockLogger() {
 }
 
 // InitLogger initializes logger with level
-func InitLogger(logLevel string) {
-	Init(getCore(getAtomicLevel(logLevel)))
+func InitLogger(logLevel, filename string) {
+	Init(getCore(getAtomicLevel(logLevel), filename))
 }
 
 // Init initializes new logger
@@ -84,8 +84,13 @@ func getAtomicLevel(logLevel string) zap.AtomicLevel {
 	return zap.NewAtomicLevelAt(level)
 }
 
-func getCore(level zap.AtomicLevel) zapcore.Core {
+func getCore(level zap.AtomicLevel, filename string) zapcore.Core {
 	stdout := zapcore.AddSync(os.Stdout)
+
+	loggerFilename := defaultLoggerFilename
+	if len(filename) != 0 {
+		loggerFilename = filename
+	}
 
 	file := zapcore.AddSync(&lumberjack.Logger{
 		Filename:   loggerFilename,

@@ -19,7 +19,7 @@ func (q *Query) CommandName() string {
 	return q.Command
 }
 
-// Arguments returns args of command
+// Arguments returns args of commandg
 func (q *Query) Arguments() []string {
 	return q.Args
 }
