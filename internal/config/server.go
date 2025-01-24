@@ -2,19 +2,17 @@ package config
 
 import (
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 
-	"github.com/joho/godotenv"
 	"gopkg.in/yaml.v2"
 
 	"concurrency_go_course/pkg/logger"
 )
 
 const (
-	configPathName = "CONFIG_PATH"
-
 	defaultEngine = "in_memory"
 
 	defaultHost           = "127.0.0.1"
@@ -34,10 +32,12 @@ var blockSizes = map[string]int{
 	"GB": 1024 * 1024 * 1024,
 }
 
+// EngineConfig is a struct for engine config
 type EngineConfig struct {
 	Type string `yaml:"type"`
 }
 
+// NetworkConfig is a struct for network config
 type NetworkConfig struct {
 	Address        string `yaml:"address"`
 	MaxConnections int    `yaml:"max_connections"`
@@ -45,17 +45,20 @@ type NetworkConfig struct {
 	IdleTimeout    string `yaml:"idle_timeout"`
 }
 
+// LoggingConfig is a struct for logging config
 type LoggingConfig struct {
 	Level  string `yaml:"level"`
 	Output string `yaml:"output"`
 }
 
+// ServerConfig is a struct for server config
 type ServerConfig struct {
 	Engine  *EngineConfig  `yaml:"engine"`
 	Network *NetworkConfig `yaml:"network"`
 	Logging *LoggingConfig `yaml:"logging"`
 }
 
+// DefaultServerConfig returns server config with default values
 func DefaultServerConfig() *ServerConfig {
 	return &ServerConfig{
 		Engine: &EngineConfig{
@@ -75,22 +78,10 @@ func DefaultServerConfig() *ServerConfig {
 }
 
 // NewServerConfig returns new server config
-func NewServerConfig() (*ServerConfig, error) {
+func NewServerConfig(cfgPath string) (*ServerConfig, error) {
 	cfg := DefaultServerConfig()
 
-	err := godotenv.Load("local.env")
-	if err != nil {
-		logger.Error("unable to load local.env, apply default parameters")
-		return cfg, nil
-	}
-
-	cfgPath := os.Getenv(configPathName)
-	if len(cfgPath) == 0 {
-		logger.Error("config path not found, apply default parameters")
-		return cfg, nil
-	}
-
-	data, err := os.ReadFile(cfgPath)
+	data, err := os.ReadFile(filepath.Clean(cfgPath))
 	if err != nil {
 		logger.Error("unable to read config file, apply default parameters")
 		return cfg, nil
@@ -105,6 +96,7 @@ func NewServerConfig() (*ServerConfig, error) {
 	return cfg, nil
 }
 
+// ParseMaxMessageSize converts message string to bytes
 func ParseMaxMessageSize(msgSizeStr string) int {
 	msgSizeStr = strings.TrimSpace(strings.ToUpper(msgSizeStr))
 

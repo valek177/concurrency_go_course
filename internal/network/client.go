@@ -5,12 +5,15 @@ import (
 	"net"
 )
 
+// ClientDefaultBufSize is default value for client max message size
 const ClientDefaultBufSize = 4096
 
+// TCPClient is a struct for TCP client
 type TCPClient struct {
 	conn net.Conn
 }
 
+// NewClient returns new TCP client
 func NewClient(serverAddress string) (*TCPClient, error) {
 	conn, err := net.Dial("tcp", serverAddress)
 	if err != nil {
@@ -22,6 +25,7 @@ func NewClient(serverAddress string) (*TCPClient, error) {
 	}, nil
 }
 
+// Send sends request
 func (c *TCPClient) Send(request []byte) ([]byte, error) {
 	_, err := c.conn.Write([]byte(request))
 	if err != nil {
@@ -37,6 +41,9 @@ func (c *TCPClient) Send(request []byte) ([]byte, error) {
 	return response[:cnt], nil
 }
 
+// Close closes TCP client connection
 func (c *TCPClient) Close() {
-	c.conn.Close()
+	if c.conn != nil {
+		_ = c.conn.Close()
+	}
 }

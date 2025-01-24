@@ -91,7 +91,7 @@ func TestServiceHandlePos(t *testing.T) {
 		},
 		"SET: correct result": {
 			in:  "SET key1 value1",
-			res: "",
+			res: "OK",
 			exec: func() {
 				mockStorage.EXPECT().Set("key1", "value1").Return()
 			},
@@ -99,7 +99,7 @@ func TestServiceHandlePos(t *testing.T) {
 		},
 		"DEL: correct result": {
 			in:  "DEL key1",
-			res: "",
+			res: "OK",
 			exec: func() {
 				mockStorage.EXPECT().Delete("key1").Return()
 			},

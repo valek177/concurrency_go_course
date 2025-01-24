@@ -7,8 +7,10 @@ import (
 	"concurrency_go_course/internal/network"
 )
 
+var configPath = "config.yaml"
+
 func main() {
-	cfg, err := config.NewServerConfig()
+	cfg, err := config.NewServerConfig(configPath)
 	if err != nil {
 		log.Fatal("unable to start server: unable to read cfg")
 	}
@@ -18,7 +20,9 @@ func main() {
 		log.Fatal("unable to start server")
 	}
 
-	defer server.Close()
+	defer func() {
+		_ = server.Close()
+	}()
 
 	server.Run()
 }

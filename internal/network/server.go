@@ -16,6 +16,7 @@ import (
 	"concurrency_go_course/pkg/sema"
 )
 
+// TCPServer is a struct for TCP server
 type TCPServer struct {
 	listener  net.Listener
 	dbService service.Service
@@ -24,7 +25,12 @@ type TCPServer struct {
 	semaphore *sema.Semaphore
 }
 
+// New returns new TCP server
 func New(cfg *config.ServerConfig) (*TCPServer, error) {
+	if cfg == nil {
+		return nil, fmt.Errorf("config is empty")
+	}
+
 	listener, err := net.Listen("tcp", cfg.Network.Address)
 	if err != nil {
 		return nil, fmt.Errorf("failed to listen: %w", err)
@@ -49,6 +55,7 @@ func New(cfg *config.ServerConfig) (*TCPServer, error) {
 	}, nil
 }
 
+// Run starts TCP server
 func (s *TCPServer) Run() {
 	fmt.Println("Server is running on", s.cfg.Network.Address)
 	logger.Debug("Start server on", zap.String("address", s.cfg.Network.Address),
@@ -66,7 +73,9 @@ func (s *TCPServer) Run() {
 			logger.ErrorWithMsg("failed to accept", err)
 			continue
 		}
-		defer s.listener.Close()
+		defer func() {
+			_ = s.listener.Close()
+		}()
 
 		s.semaphore.Acquire()
 		go func(conn net.Conn) {
@@ -84,7 +93,9 @@ func (s *TCPServer) Run() {
 }
 
 func (s *TCPServer) handle(conn net.Conn) {
-	defer conn.Close()
+	defer func() {
+		_ = conn.Close()
+	}()
 
 	maxMessageSize := config.ParseMaxMessageSize(s.cfg.Network.MaxMessageSize)
 	idleTimeout, err := time.ParseDuration(s.cfg.Network.IdleTimeout)
@@ -108,8 +119,7 @@ func (s *TCPServer) handle(conn net.Conn) {
 		}
 		if cnt >= maxMessageSize {
 			logger.Error("unable to handle query: too small buffer size")
-			panic("ERROR BUFFER")
-			// break
+			break
 		}
 		query := string(buf[:cnt])
 		response, err := s.dbService.Handle(query)
@@ -119,11 +129,18 @@ func (s *TCPServer) handle(conn net.Conn) {
 		}
 
 		logger.Info("Sending response to client", zap.String("message", response))
-		conn.Write([]byte(response))
+		_, err = conn.Write([]byte(response))
+		if err != nil {
+			logger.ErrorWithMsg("unable to write response:", err)
+		}
 	}
 }
 
+// Close stops TCP server
 func (s *TCPServer) Close() error {
 	logger.Info("Stopping server")
-	return s.listener.Close()
+	if s.listener != nil {
+		return s.listener.Close()
+	}
+	return nil
 }
