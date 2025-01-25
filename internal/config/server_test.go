@@ -79,6 +79,11 @@ func TestParseMaxMessageSize(t *testing.T) {
 			msgSizeStr: "10MB",
 			result:     10 * 1024 * 1024,
 		},
+		{
+			name:       "incorrect value",
+			msgSizeStr: "1nn",
+			result:     0,
+		},
 	}
 
 	for _, tt := range tests {
