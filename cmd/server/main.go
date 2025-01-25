@@ -15,7 +15,7 @@ func main() {
 		log.Fatal("unable to start server: unable to read cfg")
 	}
 
-	server, err := network.New(cfg)
+	server, err := network.NewServer(cfg)
 	if err != nil {
 		log.Fatal("unable to start server")
 	}

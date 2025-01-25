@@ -25,8 +25,8 @@ type TCPServer struct {
 	semaphore *sema.Semaphore
 }
 
-// New returns new TCP server
-func New(cfg *config.ServerConfig) (*TCPServer, error) {
+// NewServer returns new TCP server
+func NewServer(cfg *config.ServerConfig) (*TCPServer, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("config is empty")
 	}

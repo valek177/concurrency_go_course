@@ -36,7 +36,7 @@ func TestNewServerNil(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			server, err := New(tt.cfg)
+			server, err := NewServer(tt.cfg)
 			assert.Nil(t, server)
 			assert.Equal(t, tt.expectedError, err)
 		})
@@ -81,7 +81,7 @@ func TestNewServer(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			server, err := New(tt.cfg)
+			server, err := NewServer(tt.cfg)
 			assert.Nil(t, err)
 			assert.Equal(t, tt.resultServer.cfg, server.cfg)
 		})
@@ -119,7 +119,7 @@ func TestRun(t *testing.T) {
 		},
 	}
 
-	server, err := New(&cfg)
+	server, err := NewServer(&cfg)
 	server.dbService = service
 	if err != nil {
 		t.Errorf("want nil error; got %+v", err)
