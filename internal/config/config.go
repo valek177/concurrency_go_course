@@ -17,7 +17,7 @@ const (
 
 	defaultHost           = "127.0.0.1"
 	defaultPort           = "3223"
-	defaultMaxConnections = 100
+	defaultMaxConnections = 0
 	defaultMaxMessageSize = "4KB"
 	defaultIdleTimeout    = "5m"
 
@@ -51,16 +51,16 @@ type LoggingConfig struct {
 	Output string `yaml:"output"`
 }
 
-// ServerConfig is a struct for server config
-type ServerConfig struct {
+// Config is a struct for server config
+type Config struct {
 	Engine  *EngineConfig  `yaml:"engine"`
 	Network *NetworkConfig `yaml:"network"`
 	Logging *LoggingConfig `yaml:"logging"`
 }
 
-// DefaultServerConfig returns server config with default values
-func DefaultServerConfig() *ServerConfig {
-	return &ServerConfig{
+// DefaultConfig returns server config with default values
+func DefaultConfig() *Config {
+	return &Config{
 		Engine: &EngineConfig{
 			Type: defaultEngine,
 		},
@@ -77,9 +77,9 @@ func DefaultServerConfig() *ServerConfig {
 	}
 }
 
-// NewServerConfig returns new server config
-func NewServerConfig(cfgPath string) (*ServerConfig, error) {
-	cfg := DefaultServerConfig()
+// NewConfig returns new config
+func NewConfig(cfgPath string) (*Config, error) {
+	cfg := DefaultConfig()
 
 	data, err := os.ReadFile(filepath.Clean(cfgPath))
 	if err != nil {

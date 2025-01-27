@@ -4,7 +4,7 @@ import "sync"
 
 // Engine is struct for key value data
 type Engine struct {
-	m    sync.Mutex
+	m    sync.RWMutex
 	data map[string]string
 }
 

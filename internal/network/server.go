@@ -8,10 +8,8 @@ import (
 
 	"go.uber.org/zap"
 
-	"concurrency_go_course/internal/compute"
 	"concurrency_go_course/internal/config"
 	"concurrency_go_course/internal/service"
-	"concurrency_go_course/internal/storage"
 	"concurrency_go_course/pkg/logger"
 	"concurrency_go_course/pkg/sema"
 )
@@ -20,13 +18,17 @@ import (
 type TCPServer struct {
 	listener  net.Listener
 	dbService service.Service
-	cfg       *config.ServerConfig
+	cfg       *config.Config
 
 	semaphore *sema.Semaphore
 }
 
 // NewServer returns new TCP server
-func NewServer(cfg *config.ServerConfig) (*TCPServer, error) {
+func NewServer(dbService service.Service, cfg *config.Config) (*TCPServer, error) {
+	if dbService == nil {
+		return nil, fmt.Errorf("database service is empty")
+	}
+
 	if cfg == nil {
 		return nil, fmt.Errorf("config is empty")
 	}
@@ -39,16 +41,9 @@ func NewServer(cfg *config.ServerConfig) (*TCPServer, error) {
 	logger.InitLogger(cfg.Logging.Level, cfg.Logging.Output)
 	logger.Debug("init logger")
 
-	storage := storage.NewEngine()
-
-	requestParser := compute.NewRequestParser()
-	compute := compute.NewCompute(requestParser)
-
-	service := service.NewService(storage, compute)
-
 	return &TCPServer{
 		listener:  listener,
-		dbService: service,
+		dbService: dbService,
 		cfg:       cfg,
 
 		semaphore: sema.NewSemaphore(cfg.Network.MaxConnections),
@@ -73,9 +68,6 @@ func (s *TCPServer) Run() {
 			logger.ErrorWithMsg("failed to accept", err)
 			continue
 		}
-		defer func() {
-			_ = s.listener.Close()
-		}()
 
 		s.semaphore.Acquire()
 		go func(conn net.Conn) {
