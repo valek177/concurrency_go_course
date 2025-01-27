@@ -9,10 +9,12 @@ import (
 	"go.uber.org/zap"
 )
 
+var resultOK = "OK"
+
 func (s *serv) Handle(request string) (string, error) {
 	query, err := s.compute.Handle(request)
 	if err != nil {
-		fmt.Printf("Parsing request error: %v", err.Error())
+		fmt.Printf("Parsing request error: %v\n", err.Error())
 
 		return "", err
 	}
@@ -37,14 +39,14 @@ func (s *serv) Handle(request string) (string, error) {
 		logger.Debug("Key with value was saved",
 			zap.String("key", query.Args[0]), zap.String("value", query.Args[1]))
 
-		return "", nil
+		return resultOK, nil
 	case compute.CommandDelete:
 		s.storage.Delete(query.Args[0])
 
 		logger.Debug("Key was deleted", zap.String("key", query.Args[0]))
 
-		return "", nil
+		return resultOK, nil
 	}
 
-	return "", nil
+	return "", fmt.Errorf("unknown command: %s", query.Command)
 }
