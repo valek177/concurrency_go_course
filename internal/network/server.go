@@ -11,6 +11,7 @@ import (
 	"concurrency_go_course/internal/config"
 	"concurrency_go_course/internal/service"
 	"concurrency_go_course/pkg/logger"
+	"concurrency_go_course/pkg/parser"
 	"concurrency_go_course/pkg/sema"
 )
 
@@ -37,9 +38,6 @@ func NewServer(dbService service.Service, cfg *config.Config) (*TCPServer, error
 	if err != nil {
 		return nil, fmt.Errorf("failed to listen: %w", err)
 	}
-
-	logger.InitLogger(cfg.Logging.Level, cfg.Logging.Output)
-	logger.Debug("init logger")
 
 	return &TCPServer{
 		listener:  listener,
@@ -89,7 +87,12 @@ func (s *TCPServer) handle(conn net.Conn) {
 		_ = conn.Close()
 	}()
 
-	maxMessageSize := config.ParseMaxMessageSize(s.cfg.Network.MaxMessageSize)
+	maxMessageSize, err := parser.ParseSize(s.cfg.Network.MaxMessageSize)
+	if err != nil {
+		logger.Error("unable to set max message size: incorrect value")
+		return
+	}
+
 	idleTimeout, err := time.ParseDuration(s.cfg.Network.IdleTimeout)
 	if err != nil {
 		logger.Error("unable to set idle timeout: incorrect timeout")

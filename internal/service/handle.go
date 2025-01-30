@@ -41,7 +41,7 @@ func (s *serv) Handle(request string) (string, error) {
 
 		return resultOK, nil
 	case compute.CommandDelete:
-		s.storage.Delete(query.Args[0])
+		s.storage.Del(query.Args[0])
 
 		logger.Debug("Key was deleted", zap.String("key", query.Args[0]))
 

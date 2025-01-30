@@ -11,13 +11,13 @@ type Service interface {
 }
 
 type serv struct {
-	storage storage.Storage
+	storage *storage.Storage
 	compute compute.Compute
 }
 
 // NewService returns new service
 func NewService(
-	storage storage.Storage,
+	storage *storage.Storage,
 	compute compute.Compute,
 ) *serv {
 	return &serv{
