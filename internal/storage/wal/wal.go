@@ -7,13 +7,13 @@ import (
 	"sync"
 	"time"
 
+	"go.uber.org/zap"
+
 	"concurrency_go_course/internal/compute"
 	"concurrency_go_course/internal/config"
 	"concurrency_go_course/internal/filesystem"
 	"concurrency_go_course/pkg/logger"
 	"concurrency_go_course/pkg/parser"
-
-	"go.uber.org/zap"
 )
 
 const (
@@ -22,6 +22,7 @@ const (
 	defaultMaxSegmentSize       = "10MB"
 )
 
+// Settings is a WAL settings struct
 type Settings struct {
 	MaxSegmentSize       int
 	FlushingBatchSize    int
@@ -29,10 +30,11 @@ type Settings struct {
 	DataDirectory        string
 }
 
+// WAL is a write ahead log struct
 type WAL struct {
 	settings Settings
 
-	logsManager *LogsManager
+	logsManager LogsManager
 
 	m      sync.Mutex
 	buffer []Request
@@ -42,6 +44,7 @@ type WAL struct {
 	writeStatus <-chan error
 }
 
+// New creates new WAL
 func New(cfg *config.WALCfg) (*WAL, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("unable to create WAL: cfg is empty")
@@ -77,7 +80,9 @@ func New(cfg *config.WALCfg) (*WAL, error) {
 		settings.FlushingBatchTimeout = batchTimeout
 	}
 
-	segment := filesystem.NewSegment(cfg.WalConfig.DataDirectory, segmentSize)
+	fileLib := filesystem.NewFileLib()
+
+	segment := filesystem.NewSegment(cfg.WalConfig.DataDirectory, segmentSize, fileLib)
 
 	logsManager, err := NewLogsManager(segment)
 	if err != nil {
@@ -86,7 +91,7 @@ func New(cfg *config.WALCfg) (*WAL, error) {
 
 	if _, err := os.Stat(cfg.WalConfig.DataDirectory); err != nil {
 		if os.IsNotExist(err) {
-			err := os.MkdirAll(cfg.WalConfig.DataDirectory, os.ModePerm)
+			err := os.MkdirAll(cfg.WalConfig.DataDirectory, os.ModePerm) //nolint:gosec
 			if err != nil {
 				return nil, fmt.Errorf("mkdir error: %w", err)
 			}
@@ -104,6 +109,7 @@ func New(cfg *config.WALCfg) (*WAL, error) {
 	}, nil
 }
 
+// Start initializes WAL
 func (w *WAL) Start(ctx context.Context) {
 	logger.Info("Starting WAL with settings",
 		zap.String("flushing_timeout", w.settings.FlushingBatchTimeout.String()),
@@ -132,25 +138,28 @@ func (w *WAL) Start(ctx context.Context) {
 			case batch := <-w.bufferCh:
 				w.logsManager.Write(batch)
 				ticker.Reset(w.settings.FlushingBatchTimeout * time.Second)
-				logger.Debug("Write batch by buffer")
+				logger.Debug("Batch was flushed by buffer")
 			case <-ticker.C:
 				w.flushBatch()
-				logger.Debug("Write batch by timeout")
+				logger.Debug("Batch was flushed by timeout")
 			}
 		}
 	}()
 }
 
+// Recover recover from files
 func (w *WAL) Recover() ([]Request, error) {
 	return w.logsManager.ReadAll()
 }
 
+// Set sets new value
 func (w *WAL) Set(key, value string) error {
 	w.push(compute.CommandSet, []string{key, value})
 
 	return <-w.writeStatus
 }
 
+// Del deletes key
 func (w *WAL) Del(key string) error {
 	w.push(compute.CommandDelete, []string{key})
 

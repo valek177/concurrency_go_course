@@ -34,14 +34,14 @@ func (s *serv) Handle(request string) (string, error) {
 
 		return v, nil
 	case compute.CommandSet:
-		s.storage.Set(query.Args[0], query.Args[1])
+		_ = s.storage.Set(query.Args[0], query.Args[1])
 
 		logger.Debug("Key with value was saved",
 			zap.String("key", query.Args[0]), zap.String("value", query.Args[1]))
 
 		return resultOK, nil
 	case compute.CommandDelete:
-		s.storage.Del(query.Args[0])
+		_ = s.storage.Del(query.Args[0])
 
 		logger.Debug("Key was deleted", zap.String("key", query.Args[0]))
 

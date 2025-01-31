@@ -10,23 +10,20 @@ import (
 	"go.uber.org/zap"
 )
 
-type Engine interface {
-	Get(key string) (string, bool)
-	Set(key string, value string)
-	Delete(key string)
-}
-
+// Storage is a struct for storage
 type Storage struct {
 	engine Engine
 	wal    *wal.WAL
 }
 
+// WAL is interface for write ahead log
 type WAL interface {
 	Set(string, string) error
 	Del(string) error
 	Recover() ([]wal.Request, error)
 }
 
+// New creates new storage
 func New(engine Engine, wal *wal.WAL) (*Storage, error) {
 	if engine == nil {
 		return nil, fmt.Errorf("unable to create storage: engine is empty")
@@ -53,9 +50,11 @@ func New(engine Engine, wal *wal.WAL) (*Storage, error) {
 	return storage, nil
 }
 
+// Set sets new value
 func (s *Storage) Set(key, value string) error {
 	if s.wal != nil {
-		if err := s.wal.Set(key, value); err != nil {
+		err := s.wal.Set(key, value)
+		if err != nil {
 			return err
 		}
 	}
@@ -64,10 +63,12 @@ func (s *Storage) Set(key, value string) error {
 	return nil
 }
 
+// Get returns value by key
 func (s *Storage) Get(key string) (string, bool) {
 	return s.engine.Get(key)
 }
 
+// Del deletes key
 func (s *Storage) Del(key string) error {
 	if s.wal != nil {
 		if err := s.wal.Del(key); err != nil {

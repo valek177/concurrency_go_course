@@ -8,29 +8,40 @@ import (
 	"time"
 )
 
-type Segment struct {
+// Segment is interface for segment
+type Segment interface {
+	Write(data []byte) error
+	ReadAll() ([][]byte, error)
+}
+
+type segment struct {
 	file      *os.File
 	directory string
 
 	segmentSize    int
 	maxSegmentSize int
+
+	fileLib FileLib
 }
 
-func NewSegment(directory string, maxSegmentSize int) *Segment {
-	return &Segment{
+// NewSegment returns new segment
+func NewSegment(directory string, maxSegmentSize int, fileLib FileLib) Segment {
+	return &segment{
 		directory:      directory,
 		maxSegmentSize: maxSegmentSize,
+		fileLib:        fileLib,
 	}
 }
 
-func (s *Segment) Write(data []byte) error {
+// Write writes bytes of segment
+func (s *segment) Write(data []byte) error {
 	if s.file == nil || s.segmentSize >= s.maxSegmentSize {
 		if err := s.createSegment(); err != nil {
 			return fmt.Errorf("failed to create segment file: %w", err)
 		}
 	}
 
-	writtenBytes, err := WriteFile(s.file, data)
+	writtenBytes, err := s.fileLib.WriteFile(s.file, data)
 	if err != nil {
 		return fmt.Errorf("failed to write data to segment file: %w", err)
 	}
@@ -39,7 +50,7 @@ func (s *Segment) Write(data []byte) error {
 	return nil
 }
 
-func (s *Segment) createSegment() error {
+func (s *segment) createSegment() error {
 	segmentName := fmt.Sprintf("%s/wal_%d.log", s.directory, time.Now().UnixMilli())
 	if s.file != nil {
 		err := s.file.Close()
@@ -48,7 +59,7 @@ func (s *Segment) createSegment() error {
 		}
 	}
 
-	file, err := CreateFile(segmentName)
+	file, err := s.fileLib.CreateFile(segmentName)
 	if err != nil {
 		return err
 	}
@@ -58,7 +69,8 @@ func (s *Segment) createSegment() error {
 	return nil
 }
 
-func (s *Segment) ReadAll() ([][]byte, error) {
+// ReadAll reads all data from dir
+func (s *segment) ReadAll() ([][]byte, error) {
 	filenames, err := filenamesFromDir(s.directory)
 	if err != nil {
 		return nil, err

@@ -10,9 +10,7 @@ func TestGetEngine(t *testing.T) {
 	t.Parallel()
 
 	engine := NewEngine()
-	engine.data = map[string]string{
-		"key1": "a",
-	}
+	engine.Set("key1", "a")
 
 	tests := map[string]struct {
 		key           string
@@ -40,9 +38,6 @@ func TestSetEngine(t *testing.T) {
 	t.Parallel()
 
 	engine := NewEngine()
-	engine.data = map[string]string{
-		"key1": "a",
-	}
 
 	tests := map[string]struct {
 		key   string
@@ -71,9 +66,8 @@ func TestDeleteEngine(t *testing.T) {
 	t.Parallel()
 
 	engine := NewEngine()
-	engine.data = map[string]string{
-		"key1": "a",
-	}
+	engine.Set("key1", "a")
+	engine.Set("key2", "a")
 
 	tests := map[string]struct {
 		key   string

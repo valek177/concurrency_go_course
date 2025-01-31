@@ -2,21 +2,29 @@ package storage
 
 import "sync"
 
-// Engine is struct for key value data
-type EngineObj struct {
+// Engine is interface for engine
+type Engine interface {
+	Get(key string) (string, bool)
+	Set(key string, value string)
+	Delete(key string)
+}
+
+// EngineObj is struct for key value data
+type engine struct {
 	m    sync.RWMutex
 	data map[string]string
 }
 
 // NewEngine returns new engine
-func NewEngine() *EngineObj {
-	return &EngineObj{
+func NewEngine() Engine {
+	engine := engine{
 		data: make(map[string]string),
 	}
+	return &engine
 }
 
 // Get returns value
-func (e *EngineObj) Get(key string) (string, bool) {
+func (e *engine) Get(key string) (string, bool) {
 	e.m.Lock()
 	defer e.m.Unlock()
 	value, ok := e.data[key]
@@ -25,14 +33,14 @@ func (e *EngineObj) Get(key string) (string, bool) {
 }
 
 // Set sets new value for key
-func (e *EngineObj) Set(key string, value string) {
+func (e *engine) Set(key string, value string) {
 	e.m.Lock()
 	defer e.m.Unlock()
 	e.data[key] = value
 }
 
 // Delete deletes key-value pair
-func (e *EngineObj) Delete(key string) {
+func (e *engine) Delete(key string) {
 	e.m.Lock()
 	defer e.m.Unlock()
 	delete(e.data, key)

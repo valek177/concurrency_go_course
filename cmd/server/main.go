@@ -25,7 +25,7 @@ func main() {
 
 	walCfg, err := config.NewWALConfig(configPath)
 	if err != nil {
-		log.Fatal("unable to start server: unable to read WAL cfg")
+		logger.Info("unable to set WAL settings, WAL is disabled")
 	}
 
 	dbService, err := app.Init(ctx, cfg, walCfg)

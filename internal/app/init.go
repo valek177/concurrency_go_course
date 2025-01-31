@@ -20,9 +20,9 @@ func Init(ctx context.Context, cfg *config.Config, walCfg *config.WALCfg) (servi
 		return nil, fmt.Errorf("config is empty")
 	}
 
-	walObj := &wal.WAL{}
+	var walObj *wal.WAL
 
-	if walCfg == nil {
+	if walCfg == nil || walCfg.WalConfig == nil {
 		logger.Debug("WAL config is empty, WAL is not used")
 	} else {
 		walObj, err = wal.New(walCfg)

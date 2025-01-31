@@ -48,6 +48,7 @@ type Config struct {
 	Logging *LoggingConfig `yaml:"logging"`
 }
 
+// WALSettings is a struct for WAL settings
 type WALSettings struct {
 	FlushingBatchSize    int    `yaml:"flushing_batch_size"`
 	FlushingBatchTimeout string `yaml:"flushing_batch_timeout"`
@@ -55,6 +56,7 @@ type WALSettings struct {
 	DataDirectory        string `yaml:"data_directory"`
 }
 
+// WALCfg is a struct for WAL config
 type WALCfg struct {
 	WalConfig *WALSettings `yaml:"wal"`
 }
@@ -97,20 +99,21 @@ func NewConfig(cfgPath string) (*Config, error) {
 	return cfg, nil
 }
 
+// NewWALConfig returns new WAL config
 func NewWALConfig(cfgPath string) (*WALCfg, error) {
-	cfg := &WALCfg{}
-
 	data, err := os.ReadFile(filepath.Clean(cfgPath))
 	if err != nil {
 		logger.Error("unable to read WAL config file, apply default parameters")
-		return cfg, nil
+		return nil, nil
 	}
+
+	cfg := WALCfg{}
 
 	err = yaml.Unmarshal(data, &cfg)
 	if err != nil {
 		logger.Error("unable to parse WAL config file, apply default parameters")
-		return cfg, nil
+		return nil, nil
 	}
 
-	return cfg, nil
+	return &cfg, nil
 }

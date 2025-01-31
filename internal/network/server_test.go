@@ -1,19 +1,19 @@
 package network
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
 	"concurrency_go_course/internal/app"
 	"concurrency_go_course/internal/config"
 	"concurrency_go_course/internal/service"
-	mstorage "concurrency_go_course/internal/storage/mock"
+	"concurrency_go_course/internal/storage"
 	"concurrency_go_course/pkg/logger"
 )
 
@@ -21,6 +21,8 @@ func TestNewServerNil(t *testing.T) {
 	t.Parallel()
 
 	logger.MockLogger()
+
+	ctx := context.Background()
 
 	cfg := &config.Config{
 		Engine: &config.EngineConfig{
@@ -38,7 +40,7 @@ func TestNewServerNil(t *testing.T) {
 		},
 	}
 
-	dbService, err := app.Init(cfg)
+	dbService, err := app.Init(ctx, cfg, nil)
 	if err != nil {
 		t.Errorf("want nil error; got %+v", err)
 	}
@@ -97,7 +99,9 @@ func TestNewServer(t *testing.T) {
 		},
 	}
 
-	dbService, err := app.Init(cfg)
+	ctx := context.Background()
+
+	dbService, err := app.Init(ctx, cfg, nil)
 	if err != nil {
 		t.Errorf("want nil error; got %+v", err)
 	}
@@ -134,12 +138,17 @@ func TestRun(t *testing.T) {
 
 	logger.MockLogger()
 
-	ctrl := gomock.NewController(t)
-	defer t.Cleanup(ctrl.Finish)
+	ctx := context.Background()
 
-	mockStorage := mstorage.NewMockStorage(ctrl)
+	engine := storage.NewEngine()
+
+	storage, err := storage.New(engine, nil)
+	if err != nil {
+		t.Errorf("unable to create storage")
+	}
+
 	service := &MockService{
-		storage: mockStorage,
+		storage: *storage,
 	}
 
 	addr := "127.0.0.1:5555"
@@ -160,7 +169,7 @@ func TestRun(t *testing.T) {
 		},
 	}
 
-	dbService, err := app.Init(&cfg)
+	dbService, err := app.Init(ctx, &cfg, nil)
 	if err != nil {
 		t.Errorf("want nil error; got %+v", err)
 	}

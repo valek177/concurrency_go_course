@@ -9,50 +9,55 @@ import (
 	"concurrency_go_course/pkg/logger"
 )
 
-type Manager interface {
-	Write([]byte) error
-	ReadAll() ([][]byte, error)
+// LogsManager is interface for manager
+type LogsManager interface {
+	Write(requests []Request)
+	ReadAll() ([]Request, error)
 }
 
-type LogsManager struct {
-	segment *fs.Segment
+// LogsManager is a struct for logs manager
+type logsmanager struct {
+	segment fs.Segment
 }
 
-func NewLogsManager(segment *fs.Segment) (*LogsManager, error) {
+// NewLogsManager returns new logs manager
+func NewLogsManager(segment fs.Segment) (LogsManager, error) {
 	if segment == nil {
 		return nil, errors.New("segment is invalid")
 	}
 
-	return &LogsManager{segment: segment}, nil
+	return &logsmanager{segment: segment}, nil
 }
 
-func (m *LogsManager) Write(requests []Request) {
+// Write writes requests
+func (l *logsmanager) Write(requests []Request) {
 	var buffer bytes.Buffer
 	for _, req := range requests {
 		if err := req.Encode(&buffer); err != nil {
 			logger.ErrorWithMsg("failed to encode requests", err)
-			m.acknowledgeWrite(requests, err)
+			l.acknowledgeWrite(requests, err)
 			return
 		}
 	}
 
-	err := m.segment.Write(buffer.Bytes())
+	err := l.segment.Write(buffer.Bytes())
 	if err != nil {
 		logger.ErrorWithMsg("failed to write request data:", err)
 	}
 
-	m.acknowledgeWrite(requests, err)
+	l.acknowledgeWrite(requests, err)
 }
 
-func (m *LogsManager) ReadAll() ([]Request, error) {
-	segmentsData, err := m.segment.ReadAll()
+// ReadAll reads all requests
+func (l *logsmanager) ReadAll() ([]Request, error) {
+	segmentsData, err := l.segment.ReadAll()
 	if err != nil {
 		return nil, fmt.Errorf("failed to read segments: %w", err)
 	}
 
 	var requests []Request
 	for _, data := range segmentsData {
-		requests, err = m.readSegment(requests, data)
+		requests, err = l.readSegment(requests, data)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read segments: %w", err)
 		}
@@ -63,7 +68,7 @@ func (m *LogsManager) ReadAll() ([]Request, error) {
 	return requests, nil
 }
 
-func (l *LogsManager) readSegment(requests []Request, data []byte) ([]Request, error) {
+func (l *logsmanager) readSegment(requests []Request, data []byte) ([]Request, error) {
 	buffer := bytes.NewBuffer(data)
 	for buffer.Len() > 0 {
 		var request Request
@@ -77,7 +82,7 @@ func (l *LogsManager) readSegment(requests []Request, data []byte) ([]Request, e
 	return requests, nil
 }
 
-func (l *LogsManager) acknowledgeWrite(requests []Request, err error) {
+func (l *logsmanager) acknowledgeWrite(requests []Request, err error) {
 	for _, req := range requests {
 		req.doneStatus <- err
 		close(req.doneStatus)
