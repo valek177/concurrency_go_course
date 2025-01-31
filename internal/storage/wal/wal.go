@@ -64,10 +64,11 @@ func New(cfg *config.WALCfg) (*WAL, error) {
 		MaxSegmentSize:       segmentSize,
 		FlushingBatchTimeout: timeout,
 		FlushingBatchSize:    defaultFlushingBatchSize,
+		DataDirectory:        cfg.WalConfig.DataDirectory,
 	}
 
 	segmentSize, err = parser.ParseSize(cfg.WalConfig.MaxSegmentSize)
-	if err != nil {
+	if err == nil && segmentSize != 0 {
 		settings.MaxSegmentSize = segmentSize
 	}
 

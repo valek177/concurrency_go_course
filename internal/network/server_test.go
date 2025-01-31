@@ -133,6 +133,70 @@ func TestNewServer(t *testing.T) {
 	}
 }
 
+func TestNewServerWithWAL(t *testing.T) {
+	t.Parallel()
+
+	logger.MockLogger()
+
+	cfg := &config.Config{
+		Engine: &config.EngineConfig{
+			Type: "in_memory",
+		},
+		Network: &config.NetworkConfig{
+			Address:        "127.0.0.1:7777",
+			MaxConnections: 100,
+			MaxMessageSize: "4KB",
+			IdleTimeout:    "5m",
+		},
+		Logging: &config.LoggingConfig{
+			Level:  "info",
+			Output: "log/output.log",
+		},
+	}
+
+	walCfg := &config.WALCfg{
+		WalConfig: &config.WALSettings{
+			FlushingBatchSize:    10,
+			FlushingBatchTimeout: "10ms",
+			MaxSegmentSize:       "20",
+			DataDirectory:        "tmp",
+		},
+	}
+
+	ctx := context.Background()
+
+	dbService, err := app.Init(ctx, cfg, walCfg)
+	if err != nil {
+		t.Errorf("want nil error; got %+v", err)
+	}
+
+	tests := []struct {
+		name          string
+		cfg           *config.Config
+		dbService     service.Service
+		resultServer  *TCPServer
+		expectedError error
+	}{
+		{
+			name:      "New server with config",
+			dbService: dbService,
+			cfg:       cfg,
+			resultServer: &TCPServer{
+				dbService: dbService,
+				cfg:       cfg,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server, err := NewServer(tt.dbService, tt.cfg)
+			assert.Nil(t, err)
+			assert.Equal(t, tt.resultServer.cfg, server.cfg)
+		})
+	}
+}
+
 func TestRun(t *testing.T) {
 	t.Parallel()
 
