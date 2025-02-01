@@ -16,12 +16,17 @@ const (
 )
 
 func TestLogsManagerWrite(t *testing.T) {
-	t.Parallel()
 	logger.MockLogger()
 
-	err := os.Mkdir(testDataDir, os.ModePerm) //nolint:gosec
-	if err != nil {
-		t.Errorf("cannot create temporary dir for test data [%s]: %s", testDataDir, err)
+	if _, err := os.Stat(testDataDir); err != nil {
+		if os.IsNotExist(err) {
+			err := os.MkdirAll(testDataDir, os.ModePerm) //nolint:gosec
+			if err != nil {
+				t.Errorf("unable to create temp dir: mkdir error: %s", err)
+			}
+		} else {
+			t.Errorf("unable to get dir info: %s", err)
+		}
 	}
 
 	defer func() {

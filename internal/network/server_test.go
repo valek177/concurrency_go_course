@@ -88,7 +88,7 @@ func TestNewServer(t *testing.T) {
 			Type: "in_memory",
 		},
 		Network: &config.NetworkConfig{
-			Address:        "127.0.0.1:7777",
+			Address:        "127.0.0.1:8888",
 			MaxConnections: 100,
 			MaxMessageSize: "4KB",
 			IdleTimeout:    "5m",
