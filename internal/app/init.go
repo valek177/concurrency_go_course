@@ -1,19 +1,18 @@
 package app
 
 import (
-	"context"
 	"fmt"
 
 	"concurrency_go_course/internal/compute"
 	"concurrency_go_course/internal/config"
-	"concurrency_go_course/internal/service"
+	"concurrency_go_course/internal/database"
 	"concurrency_go_course/internal/storage"
 	"concurrency_go_course/internal/storage/wal"
 	"concurrency_go_course/pkg/logger"
 )
 
 // Init initializes new database service
-func Init(ctx context.Context, cfg *config.Config, walCfg *config.WALCfg) (service.Service, error) {
+func Init(cfg *config.Config, walCfg *config.WALCfg) (database.Database, error) {
 	var err error
 
 	if cfg == nil {
@@ -41,11 +40,7 @@ func Init(ctx context.Context, cfg *config.Config, walCfg *config.WALCfg) (servi
 	requestParser := compute.NewRequestParser()
 	compute := compute.NewCompute(requestParser)
 
-	service := service.NewService(storage, compute)
+	db := database.NewDatabase(storage, compute)
 
-	if walObj != nil {
-		go walObj.Start(ctx)
-	}
-
-	return service, nil
+	return db, nil
 }

@@ -32,12 +32,12 @@ type Settings struct {
 
 // WAL is a write ahead log struct
 type WAL struct {
-	settings Settings
+	settings *Settings
 
 	logsManager LogsManager
 
-	m      sync.Mutex
-	buffer []Request
+	mutexBuffer sync.Mutex
+	buffer      []Request
 
 	bufferCh chan []Request
 
@@ -50,49 +50,19 @@ func New(cfg *config.WALCfg) (*WAL, error) {
 		return nil, fmt.Errorf("unable to create WAL: cfg is empty")
 	}
 
-	segmentSize, err := parser.ParseSize(defaultMaxSegmentSize)
+	settings, err := walSettings(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	timeout, err := time.ParseDuration(defaultFlushingBatchTimeout)
+	logsManager, err := getLogsManager(settings)
 	if err != nil {
 		return nil, err
 	}
 
-	settings := Settings{
-		MaxSegmentSize:       segmentSize,
-		FlushingBatchTimeout: timeout,
-		FlushingBatchSize:    defaultFlushingBatchSize,
-		DataDirectory:        cfg.WalConfig.DataDirectory,
-	}
-
-	segmentSize, err = parser.ParseSize(cfg.WalConfig.MaxSegmentSize)
-	if err == nil && segmentSize != 0 {
-		settings.MaxSegmentSize = segmentSize
-	}
-
-	if cfg.WalConfig.FlushingBatchSize != 0 {
-		settings.FlushingBatchSize = cfg.WalConfig.FlushingBatchSize
-	}
-
-	batchTimeout, err := time.ParseDuration(cfg.WalConfig.FlushingBatchTimeout)
-	if err == nil && batchTimeout != 0 {
-		settings.FlushingBatchTimeout = batchTimeout
-	}
-
-	fileLib := filesystem.NewFileLib()
-
-	segment := filesystem.NewSegment(cfg.WalConfig.DataDirectory, segmentSize, fileLib)
-
-	logsManager, err := NewLogsManager(segment)
-	if err != nil {
-		return nil, err
-	}
-
-	if _, err := os.Stat(cfg.WalConfig.DataDirectory); err != nil {
+	if _, err := os.Stat(settings.DataDirectory); err != nil {
 		if os.IsNotExist(err) {
-			err := os.MkdirAll(cfg.WalConfig.DataDirectory, os.ModePerm) //nolint:gosec
+			err := os.MkdirAll(settings.DataDirectory, os.ModePerm) //nolint:gosec
 			if err != nil {
 				return nil, fmt.Errorf("mkdir error: %w", err)
 			}
@@ -103,7 +73,7 @@ func New(cfg *config.WALCfg) (*WAL, error) {
 
 	return &WAL{
 		settings:    settings,
-		m:           sync.Mutex{},
+		mutexBuffer: sync.Mutex{},
 		buffer:      make([]Request, 0),
 		bufferCh:    make(chan []Request, 1),
 		logsManager: logsManager,
@@ -170,13 +140,13 @@ func (w *WAL) Del(key string) error {
 func (w *WAL) push(cmd string, args []string) {
 	request := NewRequest(cmd, args)
 
-	w.m.Lock()
+	w.mutexBuffer.Lock()
 	w.buffer = append(w.buffer, request)
 	if len(w.buffer) == w.settings.FlushingBatchSize {
 		w.bufferCh <- w.buffer
 		w.buffer = nil
 	}
-	w.m.Unlock()
+	w.mutexBuffer.Unlock()
 
 	w.writeStatus = request.doneStatus
 }
@@ -184,12 +154,61 @@ func (w *WAL) push(cmd string, args []string) {
 func (w *WAL) flushBatch() {
 	var batch []Request
 
-	w.m.Lock()
+	w.mutexBuffer.Lock()
 	batch = w.buffer
 	w.buffer = nil
-	w.m.Unlock()
+	w.mutexBuffer.Unlock()
 
 	if len(batch) != 0 {
 		w.logsManager.Write(batch)
 	}
+}
+
+func walSettings(cfg *config.WALCfg) (*Settings, error) {
+	segmentSize, err := parser.ParseSize(defaultMaxSegmentSize)
+	if err != nil {
+		return nil, err
+	}
+
+	timeout, err := time.ParseDuration(defaultFlushingBatchTimeout)
+	if err != nil {
+		return nil, err
+	}
+
+	settings := Settings{
+		MaxSegmentSize:       segmentSize,
+		FlushingBatchTimeout: timeout,
+		FlushingBatchSize:    defaultFlushingBatchSize,
+		DataDirectory:        cfg.WalConfig.DataDirectory,
+	}
+
+	segmentSize, err = parser.ParseSize(cfg.WalConfig.MaxSegmentSize)
+	if err == nil && segmentSize != 0 {
+		settings.MaxSegmentSize = segmentSize
+	}
+
+	if cfg.WalConfig.FlushingBatchSize != 0 {
+		settings.FlushingBatchSize = cfg.WalConfig.FlushingBatchSize
+	}
+
+	batchTimeout, err := time.ParseDuration(cfg.WalConfig.FlushingBatchTimeout)
+	if err == nil && batchTimeout != 0 {
+		settings.FlushingBatchTimeout = batchTimeout
+	}
+
+	return &settings, nil
+}
+
+func getLogsManager(settings *Settings) (LogsManager, error) {
+	fileLib := filesystem.NewFileLib()
+
+	segment := filesystem.NewSegment(settings.DataDirectory,
+		settings.MaxSegmentSize, fileLib)
+
+	logsManager, err := NewLogsManager(segment)
+	if err != nil {
+		return nil, err
+	}
+
+	return logsManager, nil
 }

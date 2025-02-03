@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"fmt"
 
 	"concurrency_go_course/internal/compute"
@@ -10,8 +11,16 @@ import (
 	"go.uber.org/zap"
 )
 
-// Storage is a struct for storage
-type Storage struct {
+// Storage is interface for storage
+type Storage interface {
+	Set(key, value string) error
+	Get(key string) (string, bool)
+	Del(key string) error
+	Restore(requests []wal.Request)
+	StartWAL(ctx context.Context)
+}
+
+type storage struct {
 	engine Engine
 	wal    *wal.WAL
 }
@@ -24,7 +33,7 @@ type WAL interface {
 }
 
 // New creates new storage
-func New(engine Engine, wal *wal.WAL) (*Storage, error) {
+func New(engine Engine, wal *wal.WAL) (Storage, error) {
 	if engine == nil {
 		return nil, fmt.Errorf("unable to create storage: engine is empty")
 	}
@@ -33,25 +42,25 @@ func New(engine Engine, wal *wal.WAL) (*Storage, error) {
 		logger.Debug("WAL is not used")
 	}
 
-	storage := &Storage{
+	stor := &storage{
 		engine: engine,
 		wal:    wal,
 	}
 
-	if storage.wal != nil {
-		requests, err := storage.wal.Recover()
+	if stor.wal != nil {
+		requests, err := stor.wal.Recover()
 		if err != nil {
 			logger.ErrorWithMsg("unable to get requests from WAL", err)
 		} else {
-			storage.restore(requests)
+			stor.Restore(requests)
 		}
 	}
 
-	return storage, nil
+	return stor, nil
 }
 
 // Set sets new value
-func (s *Storage) Set(key, value string) error {
+func (s *storage) Set(key, value string) error {
 	if s.wal != nil {
 		err := s.wal.Set(key, value)
 		if err != nil {
@@ -64,12 +73,12 @@ func (s *Storage) Set(key, value string) error {
 }
 
 // Get returns value by key
-func (s *Storage) Get(key string) (string, bool) {
+func (s *storage) Get(key string) (string, bool) {
 	return s.engine.Get(key)
 }
 
 // Del deletes key
-func (s *Storage) Del(key string) error {
+func (s *storage) Del(key string) error {
 	if s.wal != nil {
 		if err := s.wal.Del(key); err != nil {
 			return err
@@ -80,7 +89,8 @@ func (s *Storage) Del(key string) error {
 	return nil
 }
 
-func (s *Storage) restore(requests []wal.Request) {
+// Restore restores WAL settings
+func (s *storage) Restore(requests []wal.Request) {
 	for _, request := range requests {
 		switch request.Command {
 		case compute.CommandSet:
@@ -91,5 +101,12 @@ func (s *Storage) restore(requests []wal.Request) {
 			s.engine.Delete(request.Args[0])
 			logger.Debug("Was deleted", zap.String("key", request.Args[0]))
 		}
+	}
+}
+
+// StartWAL starts WAL
+func (s *storage) StartWAL(ctx context.Context) {
+	if s.wal != nil {
+		s.wal.Start(ctx)
 	}
 }

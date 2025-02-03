@@ -1,7 +1,6 @@
 package network
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"sync"
@@ -12,8 +11,7 @@ import (
 
 	"concurrency_go_course/internal/app"
 	"concurrency_go_course/internal/config"
-	"concurrency_go_course/internal/service"
-	"concurrency_go_course/internal/storage"
+	"concurrency_go_course/internal/database"
 	"concurrency_go_course/pkg/logger"
 )
 
@@ -21,8 +19,6 @@ func TestNewServerNil(t *testing.T) {
 	t.Parallel()
 
 	logger.MockLogger()
-
-	ctx := context.Background()
 
 	cfg := &config.Config{
 		Engine: &config.EngineConfig{
@@ -40,15 +36,15 @@ func TestNewServerNil(t *testing.T) {
 		},
 	}
 
-	dbService, err := app.Init(ctx, cfg, nil)
+	dbService, err := app.Init(cfg, nil)
 	if err != nil {
 		t.Errorf("want nil error; got %+v", err)
 	}
 
 	tests := []struct {
-		name      string
-		cfg       *config.Config
-		dbService service.Service
+		name string
+		cfg  *config.Config
+		db   database.Database
 
 		resultServer  *TCPServer
 		expectedError error
@@ -56,14 +52,14 @@ func TestNewServerNil(t *testing.T) {
 		{
 			name:          "New server without DB service",
 			cfg:           cfg,
-			dbService:     nil,
+			db:            nil,
 			resultServer:  nil,
-			expectedError: fmt.Errorf("database service is empty"),
+			expectedError: fmt.Errorf("database is empty"),
 		},
 		{
 			name:          "New server without config",
 			cfg:           nil,
-			dbService:     dbService,
+			db:            dbService,
 			resultServer:  nil,
 			expectedError: fmt.Errorf("config is empty"),
 		},
@@ -71,7 +67,7 @@ func TestNewServerNil(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			server, err := NewServer(tt.dbService, tt.cfg)
+			server, err := NewServer(tt.db, tt.cfg)
 			assert.Nil(t, server)
 			assert.Equal(t, tt.expectedError, err)
 		})
@@ -99,9 +95,7 @@ func TestNewServer(t *testing.T) {
 		},
 	}
 
-	ctx := context.Background()
-
-	dbService, err := app.Init(ctx, cfg, nil)
+	db, err := app.Init(cfg, nil)
 	if err != nil {
 		t.Errorf("want nil error; got %+v", err)
 	}
@@ -109,24 +103,24 @@ func TestNewServer(t *testing.T) {
 	tests := []struct {
 		name          string
 		cfg           *config.Config
-		dbService     service.Service
+		db            database.Database
 		resultServer  *TCPServer
 		expectedError error
 	}{
 		{
-			name:      "New server with config",
-			dbService: dbService,
-			cfg:       cfg,
+			name: "New server with config",
+			db:   db,
+			cfg:  cfg,
 			resultServer: &TCPServer{
-				dbService: dbService,
-				cfg:       cfg,
+				db:  db,
+				cfg: cfg,
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			server, err := NewServer(tt.dbService, tt.cfg)
+			server, err := NewServer(tt.db, tt.cfg)
 			assert.Nil(t, err)
 			assert.Equal(t, tt.resultServer.cfg, server.cfg)
 		})
@@ -163,9 +157,7 @@ func TestNewServerWithWAL(t *testing.T) {
 		},
 	}
 
-	ctx := context.Background()
-
-	dbService, err := app.Init(ctx, cfg, walCfg)
+	db, err := app.Init(cfg, walCfg)
 	if err != nil {
 		t.Errorf("want nil error; got %+v", err)
 	}
@@ -173,24 +165,24 @@ func TestNewServerWithWAL(t *testing.T) {
 	tests := []struct {
 		name          string
 		cfg           *config.Config
-		dbService     service.Service
+		db            database.Database
 		resultServer  *TCPServer
 		expectedError error
 	}{
 		{
-			name:      "New server with config",
-			dbService: dbService,
-			cfg:       cfg,
+			name: "New server with config",
+			db:   db,
+			cfg:  cfg,
 			resultServer: &TCPServer{
-				dbService: dbService,
-				cfg:       cfg,
+				db:  db,
+				cfg: cfg,
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			server, err := NewServer(tt.dbService, tt.cfg)
+			server, err := NewServer(tt.db, tt.cfg)
 			assert.Nil(t, err)
 			assert.Equal(t, tt.resultServer.cfg, server.cfg)
 		})
@@ -202,18 +194,7 @@ func TestRun(t *testing.T) {
 
 	logger.MockLogger()
 
-	ctx := context.Background()
-
-	engine := storage.NewEngine()
-
-	storage, err := storage.New(engine, nil)
-	if err != nil {
-		t.Errorf("unable to create storage")
-	}
-
-	service := &MockService{
-		storage: *storage,
-	}
+	db := NewMockDatabase()
 
 	addr := "127.0.0.1:5555"
 
@@ -233,13 +214,13 @@ func TestRun(t *testing.T) {
 		},
 	}
 
-	dbService, err := app.Init(ctx, &cfg, nil)
+	dbService, err := app.Init(&cfg, nil)
 	if err != nil {
 		t.Errorf("want nil error; got %+v", err)
 	}
 
 	server, err := NewServer(dbService, &cfg)
-	server.dbService = service
+	server.db = db
 	if err != nil {
 		t.Errorf("want nil error; got %+v", err)
 	}

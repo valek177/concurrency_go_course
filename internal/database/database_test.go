@@ -1,4 +1,4 @@
-package service
+package database
 
 import (
 	"fmt"
@@ -31,7 +31,7 @@ func TestServiceHandleNeg(t *testing.T) {
 	parser := compute.NewRequestParser()
 	compute := compute.NewCompute(parser)
 
-	service := NewService(storage, compute)
+	service := NewDatabase(storage, compute)
 
 	tests := map[string]struct {
 		in   string
@@ -84,7 +84,7 @@ func TestServiceHandlePos(t *testing.T) {
 	parser := compute.NewRequestParser()
 	compute := compute.NewCompute(parser)
 
-	service := NewService(storage, compute)
+	service := NewDatabase(storage, compute)
 
 	tests := map[string]struct {
 		in   string

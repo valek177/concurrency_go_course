@@ -1,9 +1,11 @@
-package service
+package database
 
 import (
+	"context"
 	"fmt"
 
 	"concurrency_go_course/internal/compute"
+	"concurrency_go_course/internal/storage"
 	"concurrency_go_course/pkg/logger"
 
 	"go.uber.org/zap"
@@ -11,7 +13,30 @@ import (
 
 var resultOK = "OK"
 
-func (s *serv) Handle(request string) (string, error) {
+// Database is interface for database
+type Database interface {
+	Handle(request string) (string, error)
+	StartWAL(ctx context.Context)
+}
+
+type database struct {
+	storage storage.Storage
+	compute compute.Compute
+}
+
+// NewDatabase returns new database
+func NewDatabase(
+	storage storage.Storage,
+	compute compute.Compute,
+) Database {
+	return &database{
+		storage: storage,
+		compute: compute,
+	}
+}
+
+// Handle handles request
+func (s *database) Handle(request string) (string, error) {
 	query, err := s.compute.Handle(request)
 	if err != nil {
 		fmt.Printf("Parsing request error: %v\n", err.Error())
@@ -49,4 +74,9 @@ func (s *serv) Handle(request string) (string, error) {
 	}
 
 	return "", fmt.Errorf("unknown command: %s", query.Command)
+}
+
+// StartWAL starts WAL
+func (s *database) StartWAL(ctx context.Context) {
+	s.storage.StartWAL(ctx)
 }

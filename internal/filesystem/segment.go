@@ -3,8 +3,6 @@ package filesystem
 import (
 	"fmt"
 	"os"
-	"regexp"
-	"slices"
 	"time"
 )
 
@@ -71,49 +69,10 @@ func (s *segment) createSegment() error {
 
 // ReadAll reads all data from dir
 func (s *segment) ReadAll() ([][]byte, error) {
-	filenames, err := filenamesFromDir(s.directory)
+	filenames, err := s.fileLib.FilenamesFromDir(s.directory)
 	if err != nil {
 		return nil, err
 	}
 
-	return dataFromFiles(s.directory, filenames)
-}
-
-func filenamesFromDir(dir string) ([]string, error) {
-	files, err := os.ReadDir(dir)
-	if err != nil {
-		return nil, fmt.Errorf("unable to read WAL directory: %w", err)
-	}
-
-	fileNames := make([]string, 0, len(files))
-	re := regexp.MustCompile(`wal_\d+\.log`)
-
-	for _, file := range files {
-		if file.IsDir() {
-			continue
-		}
-		if !re.MatchString(file.Name()) {
-			continue
-		}
-		fileNames = append(fileNames, file.Name())
-	}
-
-	slices.Sort(fileNames)
-
-	return fileNames, nil
-}
-
-func dataFromFiles(dir string, filenames []string) ([][]byte, error) {
-	dataRes := make([][]byte, 0, len(filenames))
-
-	for _, f := range filenames {
-		data, err := os.ReadFile(fmt.Sprintf("%s/%s", dir, f))
-		if err != nil {
-			return nil, err
-		}
-
-		dataRes = append(dataRes, data)
-	}
-
-	return dataRes, nil
+	return s.fileLib.DataFromFiles(s.directory, filenames)
 }

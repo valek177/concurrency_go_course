@@ -9,7 +9,6 @@ type Engine interface {
 	Delete(key string)
 }
 
-// EngineObj is struct for key value data
 type engine struct {
 	m    sync.RWMutex
 	data map[string]string
@@ -17,10 +16,9 @@ type engine struct {
 
 // NewEngine returns new engine
 func NewEngine() Engine {
-	engine := engine{
+	return &engine{
 		data: make(map[string]string),
 	}
-	return &engine
 }
 
 // Get returns value

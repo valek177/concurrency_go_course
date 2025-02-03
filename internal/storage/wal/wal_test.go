@@ -21,7 +21,7 @@ func TestNewWAL(t *testing.T) {
 	tests := []struct {
 		name     string
 		cfg      *config.WALCfg
-		settings Settings
+		settings *Settings
 		err      error
 	}{
 		{
@@ -34,7 +34,7 @@ func TestNewWAL(t *testing.T) {
 					DataDirectory:        "tmp",
 				},
 			},
-			settings: Settings{
+			settings: &Settings{
 				FlushingBatchSize:    100,
 				FlushingBatchTimeout: 100 * time.Millisecond,
 				MaxSegmentSize:       1024 * 1024,
@@ -51,7 +51,7 @@ func TestNewWAL(t *testing.T) {
 					DataDirectory:        "tmp",
 				},
 			},
-			settings: Settings{
+			settings: &Settings{
 				FlushingBatchSize:    100,
 				FlushingBatchTimeout: 100 * time.Millisecond,
 				MaxSegmentSize:       1024 * 1024,
@@ -68,7 +68,7 @@ func TestNewWAL(t *testing.T) {
 					DataDirectory:        "tmp",
 				},
 			},
-			settings: Settings{
+			settings: &Settings{
 				FlushingBatchSize:    10,
 				FlushingBatchTimeout: 10 * time.Millisecond,
 				MaxSegmentSize:       1024 * 1024,
@@ -85,7 +85,7 @@ func TestNewWAL(t *testing.T) {
 					DataDirectory:        "tmp",
 				},
 			},
-			settings: Settings{
+			settings: &Settings{
 				FlushingBatchSize:    10,
 				FlushingBatchTimeout: 20 * time.Millisecond,
 				MaxSegmentSize:       10 * 1024 * 1024,

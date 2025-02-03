@@ -68,11 +68,11 @@ func TestSegmentReadAll(t *testing.T) {
 		t.Errorf("wrong number of segments: expected %d, got %d", 2, len(data))
 	}
 
-	if strings.TrimSuffix(string(data[0]), "\n") != "aaaaa" {
-		t.Errorf("wrong segment data: expected %s, got %s", "'aaaaa'", string(data[0]))
+	if strings.TrimSuffix(string(data[0]), "\n") != "SET k v" {
+		t.Errorf("wrong segment data: expected %s, got %s", "'SET k v'", string(data[0]))
 	}
 
-	if strings.TrimSuffix(string(data[1]), "\n") != "bbbbb" {
-		t.Errorf("wrong segment data: expected %s, got %s", "'bbbbb'", string(data[1]))
+	if strings.TrimSuffix(string(data[1]), "\n") != "SET k1 v1" {
+		t.Errorf("wrong segment data: expected %s, got %s", "'SET k1 v1'", string(data[1]))
 	}
 }

@@ -9,7 +9,7 @@ import (
 	"go.uber.org/zap"
 
 	"concurrency_go_course/internal/config"
-	"concurrency_go_course/internal/service"
+	"concurrency_go_course/internal/database"
 	"concurrency_go_course/pkg/logger"
 	"concurrency_go_course/pkg/parser"
 	"concurrency_go_course/pkg/sema"
@@ -17,17 +17,17 @@ import (
 
 // TCPServer is a struct for TCP server
 type TCPServer struct {
-	listener  net.Listener
-	dbService service.Service
-	cfg       *config.Config
+	listener net.Listener
+	db       database.Database
+	cfg      *config.Config
 
 	semaphore *sema.Semaphore
 }
 
 // NewServer returns new TCP server
-func NewServer(dbService service.Service, cfg *config.Config) (*TCPServer, error) {
-	if dbService == nil {
-		return nil, fmt.Errorf("database service is empty")
+func NewServer(db database.Database, cfg *config.Config) (*TCPServer, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database is empty")
 	}
 
 	if cfg == nil {
@@ -40,9 +40,9 @@ func NewServer(dbService service.Service, cfg *config.Config) (*TCPServer, error
 	}
 
 	return &TCPServer{
-		listener:  listener,
-		dbService: dbService,
-		cfg:       cfg,
+		listener: listener,
+		db:       db,
+		cfg:      cfg,
 
 		semaphore: sema.NewSemaphore(cfg.Network.MaxConnections),
 	}, nil
@@ -117,7 +117,7 @@ func (s *TCPServer) handle(conn net.Conn) {
 			break
 		}
 		query := string(buf[:cnt])
-		response, err := s.dbService.Handle(query)
+		response, err := s.db.Handle(query)
 		if err != nil {
 			logger.ErrorWithMsg("unable to handle query:", err)
 			response = err.Error()
