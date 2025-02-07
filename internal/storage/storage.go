@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"context"
 	"fmt"
 
 	"concurrency_go_course/internal/compute"
@@ -17,7 +16,6 @@ type Storage interface {
 	Get(key string) (string, bool)
 	Del(key string) error
 	Restore(requests []wal.Request)
-	StartWAL(ctx context.Context)
 }
 
 type storage struct {
@@ -101,12 +99,5 @@ func (s *storage) Restore(requests []wal.Request) {
 			s.engine.Delete(request.Args[0])
 			logger.Debug("Was deleted", zap.String("key", request.Args[0]))
 		}
-	}
-}
-
-// StartWAL starts WAL
-func (s *storage) StartWAL(ctx context.Context) {
-	if s.wal != nil {
-		s.wal.Start(ctx)
 	}
 }

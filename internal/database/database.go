@@ -1,7 +1,6 @@
 package database
 
 import (
-	"context"
 	"fmt"
 
 	"concurrency_go_course/internal/compute"
@@ -16,7 +15,6 @@ var resultOK = "OK"
 // Database is interface for database
 type Database interface {
 	Handle(request string) (string, error)
-	StartWAL(ctx context.Context)
 }
 
 type database struct {
@@ -74,9 +72,4 @@ func (s *database) Handle(request string) (string, error) {
 	}
 
 	return "", fmt.Errorf("unknown command: %s", query.Command)
-}
-
-// StartWAL starts WAL
-func (s *database) StartWAL(ctx context.Context) {
-	s.storage.StartWAL(ctx)
 }

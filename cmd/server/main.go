@@ -28,14 +28,14 @@ func main() {
 		logger.Info("unable to set WAL settings, WAL is disabled")
 	}
 
-	db, err := app.Init(cfg, walCfg)
+	db, wal, err := app.Init(cfg, walCfg)
 	if err != nil {
 		log.Fatal("unable to init app")
 	}
 
-	if walCfg != nil && walCfg.WalConfig != nil {
+	if wal != nil && walCfg != nil && walCfg.WalConfig != nil {
 		logger.Debug("starting WAL")
-		go db.StartWAL(ctx)
+		go wal.Start(ctx)
 	}
 
 	server, err := network.NewServer(db, cfg)
