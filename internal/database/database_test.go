@@ -1,11 +1,12 @@
-package service
+package database
 
 import (
 	"fmt"
 	"testing"
 
 	"concurrency_go_course/internal/compute"
-	mstorage "concurrency_go_course/internal/storage/mock"
+	"concurrency_go_course/internal/storage"
+	"concurrency_go_course/internal/storage/mock"
 	"concurrency_go_course/pkg/logger"
 
 	"github.com/golang/mock/gomock"
@@ -18,14 +19,19 @@ func TestServiceHandleNeg(t *testing.T) {
 	logger.MockLogger()
 
 	ctrl := gomock.NewController(t)
-	defer t.Cleanup(ctrl.Finish)
+	defer ctrl.Finish()
 
-	mockStorage := mstorage.NewMockStorage(ctrl)
+	mockEngine := mock.NewMockEngine(ctrl)
+
+	storage, err := storage.New(mockEngine, nil)
+	if err != nil {
+		t.Errorf("unable to create storage")
+	}
 
 	parser := compute.NewRequestParser()
 	compute := compute.NewCompute(parser)
 
-	service := NewService(mockStorage, compute)
+	service := NewDatabase(storage, compute)
 
 	tests := map[string]struct {
 		in   string
@@ -43,7 +49,7 @@ func TestServiceHandleNeg(t *testing.T) {
 			in:  "GET unknown",
 			res: "",
 			exec: func() {
-				mockStorage.EXPECT().Get("unknown").Return("", false)
+				mockEngine.EXPECT().Get("unknown").Return("", false)
 			},
 			err: fmt.Errorf("value not found"),
 		},
@@ -66,14 +72,19 @@ func TestServiceHandlePos(t *testing.T) {
 	logger.MockLogger()
 
 	ctrl := gomock.NewController(t)
-	defer t.Cleanup(ctrl.Finish)
+	defer ctrl.Finish()
 
-	mockStorage := mstorage.NewMockStorage(ctrl)
+	mockEngine := mock.NewMockEngine(ctrl)
+
+	storage, err := storage.New(mockEngine, nil)
+	if err != nil {
+		t.Errorf("unable to create storage")
+	}
 
 	parser := compute.NewRequestParser()
 	compute := compute.NewCompute(parser)
 
-	service := NewService(mockStorage, compute)
+	service := NewDatabase(storage, compute)
 
 	tests := map[string]struct {
 		in   string
@@ -86,14 +97,14 @@ func TestServiceHandlePos(t *testing.T) {
 			res: "value1",
 			err: nil,
 			exec: func() {
-				mockStorage.EXPECT().Get("key1").Return("value1", true)
+				mockEngine.EXPECT().Get("key1").Return("value1", true)
 			},
 		},
 		"SET: correct result": {
 			in:  "SET key1 value1",
 			res: "OK",
 			exec: func() {
-				mockStorage.EXPECT().Set("key1", "value1").Return()
+				mockEngine.EXPECT().Set("key1", "value1").Return()
 			},
 			err: nil,
 		},
@@ -101,7 +112,7 @@ func TestServiceHandlePos(t *testing.T) {
 			in:  "DEL key1",
 			res: "OK",
 			exec: func() {
-				mockStorage.EXPECT().Delete("key1").Return()
+				mockEngine.EXPECT().Delete("key1").Return()
 			},
 			err: nil,
 		},

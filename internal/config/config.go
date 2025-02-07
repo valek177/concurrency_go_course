@@ -3,9 +3,6 @@ package config
 import (
 	"os"
 	"path/filepath"
-	"regexp"
-	"strconv"
-	"strings"
 
 	"gopkg.in/yaml.v2"
 
@@ -24,13 +21,6 @@ const (
 	defaultLogLevel  = "info"
 	defaultLogOutput = "log/output.log"
 )
-
-var blockSizes = map[string]int{
-	"B":  1,
-	"KB": 1024,
-	"MB": 1024 * 1024,
-	"GB": 1024 * 1024 * 1024,
-}
 
 // EngineConfig is a struct for engine config
 type EngineConfig struct {
@@ -56,6 +46,19 @@ type Config struct {
 	Engine  *EngineConfig  `yaml:"engine"`
 	Network *NetworkConfig `yaml:"network"`
 	Logging *LoggingConfig `yaml:"logging"`
+}
+
+// WALSettings is a struct for WAL settings
+type WALSettings struct {
+	FlushingBatchSize    int    `yaml:"flushing_batch_size"`
+	FlushingBatchTimeout string `yaml:"flushing_batch_timeout"`
+	MaxSegmentSize       string `yaml:"max_segment_size"`
+	DataDirectory        string `yaml:"data_directory"`
+}
+
+// WALCfg is a struct for WAL config
+type WALCfg struct {
+	WalConfig *WALSettings `yaml:"wal"`
 }
 
 // DefaultConfig returns server config with default values
@@ -96,29 +99,21 @@ func NewConfig(cfgPath string) (*Config, error) {
 	return cfg, nil
 }
 
-// ParseMaxMessageSize converts message string to bytes
-func ParseMaxMessageSize(msgSizeStr string) int {
-	msgSizeStr = strings.TrimSpace(strings.ToUpper(msgSizeStr))
-
-	re := regexp.MustCompile(`([0-9]+)(\w+)`)
-	res := re.FindAllStringSubmatch(msgSizeStr, -1)
-
-	for k, v := range blockSizes {
-		if !strings.HasSuffix(msgSizeStr, k) {
-			continue
-		}
-
-		if res[0][2] == k {
-			size, err := strconv.Atoi(res[0][1])
-			if err != nil {
-				logger.Error("unable to parse max message size")
-				continue
-			}
-			return size * v
-		}
+// NewWALConfig returns new WAL config
+func NewWALConfig(cfgPath string) (*WALCfg, error) {
+	data, err := os.ReadFile(filepath.Clean(cfgPath))
+	if err != nil {
+		logger.Error("unable to read WAL config file, apply default parameters")
+		return nil, nil
 	}
 
-	logger.Debug("unable to convert max message size")
+	cfg := WALCfg{}
 
-	return 0
+	err = yaml.Unmarshal(data, &cfg)
+	if err != nil {
+		logger.Error("unable to parse WAL config file, apply default parameters")
+		return nil, nil
+	}
+
+	return &cfg, nil
 }

@@ -1,9 +1,10 @@
-package service
+package database
 
 import (
 	"fmt"
 
 	"concurrency_go_course/internal/compute"
+	"concurrency_go_course/internal/storage"
 	"concurrency_go_course/pkg/logger"
 
 	"go.uber.org/zap"
@@ -11,7 +12,29 @@ import (
 
 var resultOK = "OK"
 
-func (s *serv) Handle(request string) (string, error) {
+// Database is interface for database
+type Database interface {
+	Handle(request string) (string, error)
+}
+
+type database struct {
+	storage storage.Storage
+	compute compute.Compute
+}
+
+// NewDatabase returns new database
+func NewDatabase(
+	storage storage.Storage,
+	compute compute.Compute,
+) Database {
+	return &database{
+		storage: storage,
+		compute: compute,
+	}
+}
+
+// Handle handles request
+func (s *database) Handle(request string) (string, error) {
 	query, err := s.compute.Handle(request)
 	if err != nil {
 		fmt.Printf("Parsing request error: %v\n", err.Error())
@@ -34,14 +57,14 @@ func (s *serv) Handle(request string) (string, error) {
 
 		return v, nil
 	case compute.CommandSet:
-		s.storage.Set(query.Args[0], query.Args[1])
+		_ = s.storage.Set(query.Args[0], query.Args[1])
 
 		logger.Debug("Key with value was saved",
 			zap.String("key", query.Args[0]), zap.String("value", query.Args[1]))
 
 		return resultOK, nil
 	case compute.CommandDelete:
-		s.storage.Delete(query.Args[0])
+		_ = s.storage.Del(query.Args[0])
 
 		logger.Debug("Key was deleted", zap.String("key", query.Args[0]))
 

@@ -9,24 +9,25 @@ import (
 	"go.uber.org/zap"
 
 	"concurrency_go_course/internal/config"
-	"concurrency_go_course/internal/service"
+	"concurrency_go_course/internal/database"
 	"concurrency_go_course/pkg/logger"
+	"concurrency_go_course/pkg/parser"
 	"concurrency_go_course/pkg/sema"
 )
 
 // TCPServer is a struct for TCP server
 type TCPServer struct {
-	listener  net.Listener
-	dbService service.Service
-	cfg       *config.Config
+	listener net.Listener
+	db       database.Database
+	cfg      *config.Config
 
 	semaphore *sema.Semaphore
 }
 
 // NewServer returns new TCP server
-func NewServer(dbService service.Service, cfg *config.Config) (*TCPServer, error) {
-	if dbService == nil {
-		return nil, fmt.Errorf("database service is empty")
+func NewServer(db database.Database, cfg *config.Config) (*TCPServer, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database is empty")
 	}
 
 	if cfg == nil {
@@ -38,13 +39,10 @@ func NewServer(dbService service.Service, cfg *config.Config) (*TCPServer, error
 		return nil, fmt.Errorf("failed to listen: %w", err)
 	}
 
-	logger.InitLogger(cfg.Logging.Level, cfg.Logging.Output)
-	logger.Debug("init logger")
-
 	return &TCPServer{
-		listener:  listener,
-		dbService: dbService,
-		cfg:       cfg,
+		listener: listener,
+		db:       db,
+		cfg:      cfg,
 
 		semaphore: sema.NewSemaphore(cfg.Network.MaxConnections),
 	}, nil
@@ -89,7 +87,12 @@ func (s *TCPServer) handle(conn net.Conn) {
 		_ = conn.Close()
 	}()
 
-	maxMessageSize := config.ParseMaxMessageSize(s.cfg.Network.MaxMessageSize)
+	maxMessageSize, err := parser.ParseSize(s.cfg.Network.MaxMessageSize)
+	if err != nil {
+		logger.Error("unable to set max message size: incorrect value")
+		return
+	}
+
 	idleTimeout, err := time.ParseDuration(s.cfg.Network.IdleTimeout)
 	if err != nil {
 		logger.Error("unable to set idle timeout: incorrect timeout")
@@ -114,7 +117,7 @@ func (s *TCPServer) handle(conn net.Conn) {
 			break
 		}
 		query := string(buf[:cnt])
-		response, err := s.dbService.Handle(query)
+		response, err := s.db.Handle(query)
 		if err != nil {
 			logger.ErrorWithMsg("unable to handle query:", err)
 			response = err.Error()

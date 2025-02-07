@@ -5,69 +5,74 @@
 package mock
 
 import (
+	wal "concurrency_go_course/internal/storage/wal"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
 )
 
-// MockStorage is a mock of Storage interface.
-type MockStorage struct {
+// MockWAL is a mock of WAL interface.
+type MockWAL struct {
 	ctrl     *gomock.Controller
-	recorder *MockStorageMockRecorder
+	recorder *MockWALMockRecorder
 }
 
-// MockStorageMockRecorder is the mock recorder for MockStorage.
-type MockStorageMockRecorder struct {
-	mock *MockStorage
+// MockWALMockRecorder is the mock recorder for MockWAL.
+type MockWALMockRecorder struct {
+	mock *MockWAL
 }
 
-// NewMockStorage creates a new mock instance.
-func NewMockStorage(ctrl *gomock.Controller) *MockStorage {
-	mock := &MockStorage{ctrl: ctrl}
-	mock.recorder = &MockStorageMockRecorder{mock}
+// NewMockWAL creates a new mock instance.
+func NewMockWAL(ctrl *gomock.Controller) *MockWAL {
+	mock := &MockWAL{ctrl: ctrl}
+	mock.recorder = &MockWALMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockStorage) EXPECT() *MockStorageMockRecorder {
+func (m *MockWAL) EXPECT() *MockWALMockRecorder {
 	return m.recorder
 }
 
-// Delete mocks base method.
-func (m *MockStorage) Delete(key string) {
+// Del mocks base method.
+func (m *MockWAL) Del(arg0 string) error {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Delete", key)
+	ret := m.ctrl.Call(m, "Del", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
-// Delete indicates an expected call of Delete.
-func (mr *MockStorageMockRecorder) Delete(key interface{}) *gomock.Call {
+// Del indicates an expected call of Del.
+func (mr *MockWALMockRecorder) Del(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockStorage)(nil).Delete), key)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Del", reflect.TypeOf((*MockWAL)(nil).Del), arg0)
 }
 
-// Get mocks base method.
-func (m *MockStorage) Get(key string) (string, bool) {
+// Recover mocks base method.
+func (m *MockWAL) Recover() ([]wal.Request, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Get", key)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(bool)
+	ret := m.ctrl.Call(m, "Recover")
+	ret0, _ := ret[0].([]wal.Request)
+	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// Get indicates an expected call of Get.
-func (mr *MockStorageMockRecorder) Get(key interface{}) *gomock.Call {
+// Recover indicates an expected call of Recover.
+func (mr *MockWALMockRecorder) Recover() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockStorage)(nil).Get), key)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Recover", reflect.TypeOf((*MockWAL)(nil).Recover))
 }
 
 // Set mocks base method.
-func (m *MockStorage) Set(key, value string) {
+func (m *MockWAL) Set(arg0, arg1 string) error {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Set", key, value)
+	ret := m.ctrl.Call(m, "Set", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // Set indicates an expected call of Set.
-func (mr *MockStorageMockRecorder) Set(key, value interface{}) *gomock.Call {
+func (mr *MockWALMockRecorder) Set(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Set", reflect.TypeOf((*MockStorage)(nil).Set), key, value)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Set", reflect.TypeOf((*MockWAL)(nil).Set), arg0, arg1)
 }
