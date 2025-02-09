@@ -45,10 +45,14 @@ type WAL struct {
 }
 
 // New creates new WAL
-func New(cfg *config.WALCfg) (*WAL, error) {
+func New(cfg *config.WALCfg, replType string) (*WAL, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("unable to create WAL: cfg is empty")
 	}
+
+	// if replType == "slave" {
+	// 	return &WAL{}, nil
+	// }
 
 	settings, err := walSettings(cfg)
 	if err != nil {
@@ -112,7 +116,7 @@ func (w *WAL) Start(ctx context.Context) {
 				logger.Debug("Batch was flushed by buffer")
 			case <-ticker.C:
 				w.flushBatch()
-				logger.Debug("Batch was flushed by timeout")
+				// logger.Debug("Batch was flushed by timeout")
 			}
 		}
 	}()
@@ -120,6 +124,7 @@ func (w *WAL) Start(ctx context.Context) {
 
 // Recover recover from files
 func (w *WAL) Recover() ([]Request, error) {
+	fmt.Println("WAl ", w)
 	return w.logsManager.ReadAll()
 }
 

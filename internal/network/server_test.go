@@ -36,7 +36,7 @@ func TestNewServerNil(t *testing.T) {
 		},
 	}
 
-	dbService, _, err := app.Init(cfg, nil)
+	dbService, _, _, err := app.Init(cfg, nil)
 	if err != nil {
 		t.Errorf("want nil error; got %+v", err)
 	}
@@ -95,7 +95,7 @@ func TestNewServer(t *testing.T) {
 		},
 	}
 
-	db, _, err := app.Init(cfg, nil)
+	db, _, _, err := app.Init(cfg, nil)
 	if err != nil {
 		t.Errorf("want nil error; got %+v", err)
 	}
@@ -157,7 +157,7 @@ func TestNewServerWithWAL(t *testing.T) {
 		},
 	}
 
-	db, _, err := app.Init(cfg, walCfg)
+	db, _, _, err := app.Init(cfg, walCfg)
 	if err != nil {
 		t.Errorf("want nil error; got %+v", err)
 	}
@@ -214,7 +214,7 @@ func TestRun(t *testing.T) {
 		},
 	}
 
-	dbService, _, err := app.Init(&cfg, nil)
+	dbService, _, _, err := app.Init(&cfg, nil)
 	if err != nil {
 		t.Errorf("want nil error; got %+v", err)
 	}

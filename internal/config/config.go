@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"time"
 
 	"gopkg.in/yaml.v2"
 
@@ -17,6 +18,8 @@ const (
 	defaultMaxConnections = 0
 	defaultMaxMessageSize = "4KB"
 	defaultIdleTimeout    = "5m"
+
+	defaultMasterPort = "3232"
 
 	defaultLogLevel  = "info"
 	defaultLogOutput = "log/output.log"
@@ -41,11 +44,19 @@ type LoggingConfig struct {
 	Output string `yaml:"output"`
 }
 
+// ReplicationConfig is a struct for replication config
+type ReplicationConfig struct {
+	ReplicaType   string        `yaml:"replica_type"`
+	MasterAddress string        `yaml:"master_address"`
+	SyncInterval  time.Duration `yaml:"sync_interval"`
+}
+
 // Config is a struct for server config
 type Config struct {
-	Engine  *EngineConfig  `yaml:"engine"`
-	Network *NetworkConfig `yaml:"network"`
-	Logging *LoggingConfig `yaml:"logging"`
+	Engine      *EngineConfig      `yaml:"engine"`
+	Network     *NetworkConfig     `yaml:"network"`
+	Logging     *LoggingConfig     `yaml:"logging"`
+	Replication *ReplicationConfig `yaml:"replication"`
 }
 
 // WALSettings is a struct for WAL settings
@@ -112,6 +123,25 @@ func NewWALConfig(cfgPath string) (*WALCfg, error) {
 	err = yaml.Unmarshal(data, &cfg)
 	if err != nil {
 		logger.Error("unable to parse WAL config file, apply default parameters")
+		return nil, nil
+	}
+
+	return &cfg, nil
+}
+
+// NewReplicationConfig returns new replication config
+func NewReplicationConfig(cfgPath string) (*ReplicationConfig, error) {
+	data, err := os.ReadFile(filepath.Clean(cfgPath))
+	if err != nil {
+		logger.Error("unable to read replication config file, apply default parameters")
+		return nil, nil
+	}
+
+	cfg := ReplicationConfig{}
+
+	err = yaml.Unmarshal(data, &cfg)
+	if err != nil {
+		logger.Error("unable to parse replication config file, apply default parameters")
 		return nil, nil
 	}
 
