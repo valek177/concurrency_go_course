@@ -55,7 +55,7 @@ func Init(cfg *config.Config, walCfg *config.WALCfg) (
 	fmt.Println("replc 11", repl)
 	var replStream chan []wal.Request
 	if !repl.IsMaster() {
-		fmt.Println("replc 112", repl)
+		fmt.Println("replc 112", repl) // TODO fix
 		replStream = repl.ReplicationStream()
 	}
 

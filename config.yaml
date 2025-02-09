@@ -10,8 +10,8 @@ logging:
   output: "log/output.log"
 wal:
   flushing_batch_size: 100
-  flushing_batch_timeout: "10ms"
-  max_segment_size: "10B"
+  flushing_batch_timeout: "10s"
+  max_segment_size: "30B"
   data_directory: "tmp"
 replication:
   replica_type: "master"

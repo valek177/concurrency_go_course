@@ -3,7 +3,6 @@ package replication
 import (
 	"bytes"
 	"context"
-	"encoding/gob"
 	"fmt"
 	"path"
 	"time"
@@ -101,8 +100,6 @@ func (s *Slave) syncWithMaster() {
 		return
 	}
 
-	fmt.Println("segment name ", response.SegmentName)
-
 	err = s.saveSegment(response.SegmentName, response.SegmentData)
 	if err != nil {
 		logger.ErrorWithMsg("unable to save segment", err)
@@ -142,11 +139,16 @@ func (s *Slave) applyDataToEngine(segmentData []byte) error {
 
 	var queries []wal.Request
 	buffer := bytes.NewBuffer(segmentData)
-	fmt.Println("get segment data 11", buffer)
-	decoder := gob.NewDecoder(buffer)
-	if err := decoder.Decode(&queries); err != nil {
-		return fmt.Errorf("unable to decode data: %w", err)
+	for buffer.Len() > 0 {
+		var request wal.Request
+		if err := request.Decode(buffer); err != nil {
+			return fmt.Errorf("unable to parse request data: %w", err)
+		}
+
+		queries = append(queries, request)
 	}
+
+	fmt.Println("get segment data 11", queries)
 
 	s.stream <- queries
 	return nil
