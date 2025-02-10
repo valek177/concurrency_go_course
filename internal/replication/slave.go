@@ -14,6 +14,7 @@ import (
 	"concurrency_go_course/pkg/logger"
 )
 
+// Slave is struct for slave replication
 type Slave struct {
 	masterAddress string
 	connection    *network.TCPClient
@@ -23,6 +24,7 @@ type Slave struct {
 	fileLib       filesystem.FileLib
 }
 
+// NewReplicationClient returns new replication client
 func NewReplicationClient(
 	cfg *config.Config, walCfg *config.WALCfg,
 ) (*Slave, error) {
@@ -41,6 +43,7 @@ func NewReplicationClient(
 	}, nil
 }
 
+// Start starts slave
 func (s *Slave) Start(ctx context.Context) error {
 	logger.Debug("replication client was started")
 	ticker := time.NewTicker(s.syncInterval)
@@ -67,10 +70,12 @@ func (s *Slave) Start(ctx context.Context) error {
 	}
 }
 
+// ReplicationStream returns replication stream channel
 func (s *Slave) ReplicationStream() chan []wal.Request {
 	return s.stream
 }
 
+// IsMaster returns flag
 func (s *Slave) IsMaster() bool {
 	return false
 }

@@ -15,10 +15,7 @@ import (
 	"concurrency_go_course/pkg/logger"
 )
 
-var (
-	configPathMaster = "config.yaml"
-	configPathSlave  = "config_slave.yaml"
-)
+var configPathMaster = "config.yaml"
 
 func main() {
 	configPath := flag.String("config-path", configPathMaster, "path to config file")
@@ -80,7 +77,7 @@ func main() {
 		log.Fatal("unable to start server")
 	}
 
-	server.Run(ctx, func(ctx context.Context, s []byte) []byte {
+	server.Run(ctx, func(_ context.Context, s []byte) []byte {
 		response, err := db.Handle(string(s) + "\n")
 		if err != nil {
 			logger.ErrorWithMsg("unable to handle query:", err)

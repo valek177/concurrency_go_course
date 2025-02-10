@@ -16,6 +16,7 @@ import (
 	"concurrency_go_course/pkg/sema"
 )
 
+// TCPHandler is a func for data handling
 type TCPHandler = func(context.Context, []byte) []byte
 
 // TCPServer is a struct for TCP server
@@ -95,7 +96,7 @@ func (s *TCPServer) Run(ctx context.Context, handler TCPHandler) {
 	}()
 
 	<-ctx.Done()
-	s.listener.Close()
+	_ = s.listener.Close()
 
 	wg.Wait()
 }

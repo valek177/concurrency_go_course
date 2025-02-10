@@ -20,8 +20,6 @@ const (
 	defaultMaxMessageSize = "4KB"
 	defaultIdleTimeout    = "5m"
 
-	defaultMasterPort = "3232"
-
 	defaultLogLevel  = "info"
 	defaultLogOutput = "log/output.log"
 )

@@ -1,9 +1,8 @@
 package storage
 
 import (
+	"hash/fnv"
 	"sync"
-
-	"github.com/cespare/xxhash/v2"
 )
 
 // Engine is interface for engine
@@ -65,7 +64,8 @@ func (e *engine) Delete(key string) {
 }
 
 func getHash(key string, partsCount int) int {
-	h := xxhash.Sum64String(key) % uint64(partsCount)
+	hash := fnv.New32a()
 
-	return int(h)
+	_, _ = hash.Write([]byte(key))
+	return int(hash.Sum32()) % partsCount
 }

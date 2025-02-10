@@ -7,10 +7,13 @@ import (
 )
 
 const (
+	// ReplicaTypeMaster is replication type master
 	ReplicaTypeMaster = "master"
-	ReplicaTypeSlave  = "slave"
+	// ReplicaTypeSlave is replication type slave
+	ReplicaTypeSlave = "slave"
 )
 
+// Replication is interface for replication
 type Replication interface {
 	Start(context.Context) error
 	IsMaster() bool

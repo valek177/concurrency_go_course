@@ -15,24 +15,29 @@ import (
 	"go.uber.org/zap"
 )
 
+// Master is a struct for master node
 type Master struct {
 	server       *network.TCPServer
 	walDirectory string
 	fileLib      filesystem.FileLib
 }
 
+// TCPServer is interface for TCP server
 type TCPServer interface {
 	Run(context.Context, func(context.Context, []byte) []byte)
 }
 
+// IsMaster returns flag
 func (m *Master) IsMaster() bool {
 	return true
 }
 
+// ReplicationStream returns replication stream channel
 func (m *Master) ReplicationStream() chan []wal.Request {
 	return nil
 }
 
+// NewReplicationServer creates new master replication server
 func NewReplicationServer(cfg *config.Config, walCfg *config.WALCfg) (*Master, error) {
 	server, err := network.NewServer(cfg, cfg.Replication.MasterAddress)
 	if err != nil {
@@ -46,6 +51,7 @@ func NewReplicationServer(cfg *config.Config, walCfg *config.WALCfg) (*Master, e
 	}, nil
 }
 
+// Start starts master
 func (m *Master) Start(ctx context.Context) error {
 	logger.Debug("replication master server was started")
 	m.server.Run(ctx, func(ctx context.Context, requestData []byte) []byte {

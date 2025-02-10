@@ -156,7 +156,7 @@ func TestRun(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	go server.Run(ctx, func(ctx context.Context, s []byte) []byte {
+	go server.Run(ctx, func(_ context.Context, s []byte) []byte {
 		response, err := db.Handle(string(s))
 		if err != nil {
 			response = err.Error()

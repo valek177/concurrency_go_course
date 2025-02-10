@@ -6,22 +6,26 @@ import (
 	"fmt"
 )
 
+// SlaveRequest is a struct for request from slave node
 type SlaveRequest struct {
 	LastSegmentName string
 }
 
+// NewRequest returns new slave request
 func NewRequest(lastSegmentName string) SlaveRequest {
 	return SlaveRequest{
 		LastSegmentName: lastSegmentName,
 	}
 }
 
+// MasterResponse is a struct for response from master node
 type MasterResponse struct {
 	Succeed     bool
 	SegmentName string
 	SegmentData []byte
 }
 
+// NewMasterResponse returns new master response
 func NewMasterResponse(succeed bool, segmentName string, segmentData []byte) MasterResponse {
 	return MasterResponse{
 		Succeed:     succeed,
@@ -30,6 +34,7 @@ func NewMasterResponse(succeed bool, segmentName string, segmentData []byte) Mas
 	}
 }
 
+// EncodeResponse encodes master response
 func EncodeResponse(response *MasterResponse) ([]byte, error) {
 	var buffer bytes.Buffer
 	encoder := gob.NewEncoder(&buffer)
@@ -39,6 +44,7 @@ func EncodeResponse(response *MasterResponse) ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
+// EncodeSlaveRequest encodes slave request
 func EncodeSlaveRequest(request *SlaveRequest) ([]byte, error) {
 	var buffer bytes.Buffer
 	encoder := gob.NewEncoder(&buffer)
@@ -48,6 +54,7 @@ func EncodeSlaveRequest(request *SlaveRequest) ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
+// DecodeResponse decodes master response
 func DecodeResponse(response *MasterResponse, data []byte) error {
 	buffer := bytes.NewBuffer(data)
 	decoder := gob.NewDecoder(buffer)
@@ -57,6 +64,7 @@ func DecodeResponse(response *MasterResponse, data []byte) error {
 	return nil
 }
 
+// DecodeSlaveRequest decodes slave request
 func DecodeSlaveRequest(request *SlaveRequest, data []byte) error {
 	buffer := bytes.NewBuffer(data)
 	decoder := gob.NewDecoder(buffer)
