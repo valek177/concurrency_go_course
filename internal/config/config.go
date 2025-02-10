@@ -11,7 +11,8 @@ import (
 )
 
 const (
-	defaultEngine = "in_memory"
+	defaultEngine           = "in_memory"
+	defaultPartitionsNumber = 256
 
 	defaultHost           = "127.0.0.1"
 	defaultPort           = "3223"
@@ -27,7 +28,8 @@ const (
 
 // EngineConfig is a struct for engine config
 type EngineConfig struct {
-	Type string `yaml:"type"`
+	Type             string `yaml:"type"`
+	PartitionsNumber int    `yaml:"partitions_number"`
 }
 
 // NetworkConfig is a struct for network config
@@ -76,7 +78,8 @@ type WALCfg struct {
 func DefaultConfig() *Config {
 	return &Config{
 		Engine: &EngineConfig{
-			Type: defaultEngine,
+			Type:             defaultEngine,
+			PartitionsNumber: defaultPartitionsNumber,
 		},
 		Network: &NetworkConfig{
 			Address:        defaultHost + ":" + defaultPort,

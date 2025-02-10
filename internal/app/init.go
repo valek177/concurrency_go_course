@@ -17,6 +17,11 @@ func Init(cfg *config.Config, walCfg *config.WALCfg) (
 	database.Database, *wal.WAL, replication.Replication, error,
 ) {
 	var err error
+	var replicaType string
+
+	if cfg.Replication != nil && cfg.Replication.ReplicaType != "" {
+		replicaType = cfg.Replication.ReplicaType
+	}
 
 	if cfg == nil {
 		return nil, nil, nil, fmt.Errorf("config is empty")
@@ -27,7 +32,7 @@ func Init(cfg *config.Config, walCfg *config.WALCfg) (
 	if walCfg == nil || walCfg.WalConfig == nil {
 		logger.Debug("WAL config is empty, WAL is not used")
 	} else {
-		walObj, err = wal.New(walCfg, cfg.Replication.ReplicaType)
+		walObj, err = wal.New(walCfg)
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("unable to create new WAL: %v", err)
 		}
@@ -35,39 +40,33 @@ func Init(cfg *config.Config, walCfg *config.WALCfg) (
 
 	var repl replication.Replication
 
-	if cfg.Replication != nil {
-		if cfg.Replication.ReplicaType == replication.ReplicaTypeMaster {
-			replServer, err := replication.NewReplicationServer(cfg, walCfg)
-			if err != nil {
-				logger.ErrorWithMsg("unable to create replication master server:",
-					err)
-			} else {
-				repl = replServer
-			}
+	if replicaType == replication.ReplicaTypeMaster {
+		replServer, err := replication.NewReplicationServer(cfg, walCfg)
+		if err != nil {
+			logger.ErrorWithMsg("unable to create replication master server:",
+				err)
+		} else {
+			repl = replServer
+		}
 
-		} else if cfg.Replication.ReplicaType == replication.ReplicaTypeSlave {
-			fmt.Println("replc in slave", cfg.Replication.ReplicaType)
-			replClient, err := replication.NewReplicationClient(cfg, walCfg)
-			fmt.Println("err ", err, replClient)
-			if err != nil {
-				logger.ErrorWithMsg("unable to create replication slave server:",
-					err)
-			} else {
-				repl = replClient
-			}
+	} else if replicaType == replication.ReplicaTypeSlave {
+		replClient, err := replication.NewReplicationClient(cfg, walCfg)
+		if err != nil {
+			logger.ErrorWithMsg("unable to create replication slave server:",
+				err)
+		} else {
+			repl = replClient
 		}
 	}
 
-	fmt.Println("replc 11", repl)
 	var replStream chan []wal.Request
 	if repl != nil && !repl.IsMaster() {
 		replStream = repl.ReplicationStream()
 	}
 
-	engine := storage.NewEngine()
-	fmt.Println("stream ", replStream)
+	engine := storage.NewEngine(cfg.Engine.PartitionsNumber)
 
-	storage, err := storage.New(engine, walObj, cfg, cfg.Replication.ReplicaType,
+	storage, err := storage.New(engine, walObj, cfg, replicaType,
 		replStream)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("unable to init storage: %v", err)

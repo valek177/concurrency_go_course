@@ -33,6 +33,10 @@ func NewServer(cfg *config.Config, address string) (*TCPServer, error) {
 		return nil, fmt.Errorf("config is empty")
 	}
 
+	if address == "" {
+		return nil, fmt.Errorf("address is empty")
+	}
+
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
 		return nil, fmt.Errorf("failed to listen: %w", err)
@@ -61,7 +65,6 @@ func (s *TCPServer) Run(ctx context.Context, handler TCPHandler) {
 	go func() {
 		defer wg.Done()
 		defer func() {
-			fmt.Println("Server stopping")
 			_ = s.Close()
 		}()
 

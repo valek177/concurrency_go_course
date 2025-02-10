@@ -37,7 +37,7 @@ func NewDatabase(
 func (s *database) Handle(request string) (string, error) {
 	query, err := s.compute.Handle(request)
 	if err != nil {
-		fmt.Printf("Parsing request error: %v\n", err.Error())
+		logger.ErrorWithMsg("Parsing request error:", err)
 
 		return "", err
 	}
@@ -47,7 +47,6 @@ func (s *database) Handle(request string) (string, error) {
 		v, ok := s.storage.Get(query.Args[0])
 		if !ok {
 			logger.Error("get error: value not found")
-			fmt.Printf("Value by key %s not found", query.Args[0])
 
 			return "", fmt.Errorf("value not found")
 		}

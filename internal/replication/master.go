@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"concurrency_go_course/internal/config"
 	"concurrency_go_course/internal/filesystem"
@@ -85,7 +86,7 @@ func (m *Master) lastSegment(request SlaveRequest) MasterResponse {
 	}
 
 	filename := fmt.Sprintf("%s/%s", m.walDirectory, segmentName)
-	data, err := os.ReadFile(filename)
+	data, err := os.ReadFile(filepath.Clean(filename))
 	if err != nil {
 		logger.Error("failed to read WAL segment", zap.Error(err))
 		return response
@@ -96,8 +97,7 @@ func (m *Master) lastSegment(request SlaveRequest) MasterResponse {
 	response.SegmentName = segmentName
 
 	logger.Debug("sending response to client ",
-		zap.String("name", response.SegmentName),
-		zap.String("data", string(response.SegmentData)))
+		zap.String("name", response.SegmentName))
 
 	return response
 }

@@ -45,7 +45,7 @@ type WAL struct {
 }
 
 // New creates new WAL
-func New(cfg *config.WALCfg, replType string) (*WAL, error) {
+func New(cfg *config.WALCfg) (*WAL, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("unable to create WAL: cfg is empty")
 	}
@@ -120,7 +120,6 @@ func (w *WAL) Start(ctx context.Context) {
 
 // Recover recover from files
 func (w *WAL) Recover() ([]Request, error) {
-	fmt.Println("WAl ", w)
 	return w.logsManager.ReadAll()
 }
 

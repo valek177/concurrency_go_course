@@ -43,7 +43,6 @@ func NewReplicationClient(
 
 func (s *Slave) Start(ctx context.Context) error {
 	logger.Debug("replication client was started")
-	fmt.Println("s is ", s)
 	ticker := time.NewTicker(s.syncInterval)
 	defer ticker.Stop()
 
@@ -137,8 +136,6 @@ func (s *Slave) applyDataToEngine(segmentData []byte) error {
 		return nil
 	}
 
-	fmt.Println("get segment data ", segmentData)
-
 	var queries []wal.Request
 	buffer := bytes.NewBuffer(segmentData)
 	for buffer.Len() > 0 {
@@ -149,8 +146,6 @@ func (s *Slave) applyDataToEngine(segmentData []byte) error {
 
 		queries = append(queries, request)
 	}
-
-	fmt.Println("get segment data 11", queries)
 
 	s.stream <- queries
 	return nil

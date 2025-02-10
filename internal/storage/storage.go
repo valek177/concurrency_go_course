@@ -21,10 +21,11 @@ type Storage interface {
 }
 
 type storage struct {
-	engine            Engine
-	replicationStream chan []wal.Request
-	wal               *wal.WAL
-	isMasterRepl      bool
+	engine             Engine
+	replicationStream  chan []wal.Request
+	wal                *wal.WAL
+	replicationEnabled bool
+	isMasterRepl       bool
 }
 
 // WAL is interface for write ahead log
@@ -49,27 +50,20 @@ func New(engine Engine, wal *wal.WAL, cfg *config.Config,
 		isMasterRepl:      replicationType == replication.ReplicaTypeMaster,
 	}
 
-	replication := cfg.Replication
-
-	if wal == nil || replication == nil {
-		if wal == nil {
-			logger.Debug("WAL is not used")
-		}
-		if replication == nil {
-			logger.Debug("Replication is not used")
-		}
-
-		return stor, nil
+	if cfg.Replication != nil {
+		stor.replicationEnabled = true
 	}
 
-	requests, err := stor.wal.Recover()
-	if err != nil {
-		logger.ErrorWithMsg("unable to get requests from WAL", err)
-	} else {
-		stor.Restore(requests)
+	if wal != nil {
+		requests, err := stor.wal.Recover()
+		if err != nil {
+			logger.ErrorWithMsg("unable to get requests from WAL", err)
+		} else {
+			stor.Restore(requests)
+		}
 	}
 
-	if replStream != nil {
+	if stor.replicationEnabled && replStream != nil {
 		go func() {
 			for request := range replStream {
 				logger.Debug("applying request from replication stream")
@@ -83,7 +77,7 @@ func New(engine Engine, wal *wal.WAL, cfg *config.Config,
 
 // Set sets new value
 func (s *storage) Set(key, value string) error {
-	if !s.isMasterRepl {
+	if s.replicationEnabled && !s.isMasterRepl {
 		return fmt.Errorf("unable to execute set command on slave")
 	}
 

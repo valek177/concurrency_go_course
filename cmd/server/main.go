@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"log"
 	"os/signal"
 	"sync"
@@ -55,18 +54,14 @@ func main() {
 		wg.Add(1)
 		go func() {
 			defer func() {
-				fmt.Println("WAL stopping")
 				wg.Done()
 			}()
 
 			logger.Debug("starting WAL")
 			wal.Start(ctx)
 		}()
-
-		wg.Wait()
 	}
 
-	fmt.Println("repl ", repl)
 	if cfg.Replication != nil && repl != nil {
 		logger.Debug("starting replication")
 		wg.Add(1)
@@ -78,8 +73,6 @@ func main() {
 				logger.ErrorWithMsg("unable to start replication", err)
 			}
 		}()
-
-		wg.Wait()
 	}
 
 	server, err := network.NewServer(cfg, cfg.Network.Address)
@@ -95,4 +88,6 @@ func main() {
 		}
 		return []byte(response)
 	})
+
+	wg.Wait()
 }
