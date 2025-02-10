@@ -35,31 +35,37 @@ func Init(cfg *config.Config, walCfg *config.WALCfg) (
 
 	var repl replication.Replication
 
-	if cfg.Replication.ReplicaType == "master" {
-		replServer, err := replication.NewReplicationServer(cfg, walCfg)
-		if err != nil {
-			logger.ErrorWithMsg("unable to create replication master server:", err)
-		}
-		repl = replServer
+	if cfg.Replication != nil {
+		if cfg.Replication.ReplicaType == replication.ReplicaTypeMaster {
+			replServer, err := replication.NewReplicationServer(cfg, walCfg)
+			if err != nil {
+				logger.ErrorWithMsg("unable to create replication master server:",
+					err)
+			} else {
+				repl = replServer
+			}
 
-	} else {
-		fmt.Println("replc ", cfg.Replication.ReplicaType)
-		replClient, err := replication.NewReplicationClient(cfg, walCfg)
-		if err != nil {
-			logger.ErrorWithMsg("unable to create replication slave server:", err)
+		} else if cfg.Replication.ReplicaType == replication.ReplicaTypeSlave {
+			fmt.Println("replc in slave", cfg.Replication.ReplicaType)
+			replClient, err := replication.NewReplicationClient(cfg, walCfg)
+			fmt.Println("err ", err, replClient)
+			if err != nil {
+				logger.ErrorWithMsg("unable to create replication slave server:",
+					err)
+			} else {
+				repl = replClient
+			}
 		}
-		repl = replClient
-		fmt.Println("replc ", repl)
 	}
 
 	fmt.Println("replc 11", repl)
 	var replStream chan []wal.Request
-	if !repl.IsMaster() {
-		fmt.Println("replc 112", repl) // TODO fix
+	if repl != nil && !repl.IsMaster() {
 		replStream = repl.ReplicationStream()
 	}
 
 	engine := storage.NewEngine()
+	fmt.Println("stream ", replStream)
 
 	storage, err := storage.New(engine, walObj, cfg, cfg.Replication.ReplicaType,
 		replStream)

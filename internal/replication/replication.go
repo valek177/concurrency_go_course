@@ -6,6 +6,11 @@ import (
 	"concurrency_go_course/internal/storage/wal"
 )
 
+const (
+	ReplicaTypeMaster = "master"
+	ReplicaTypeSlave  = "slave"
+)
+
 type Replication interface {
 	Start(context.Context) error
 	IsMaster() bool

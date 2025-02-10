@@ -5,6 +5,7 @@ import (
 
 	"concurrency_go_course/internal/compute"
 	"concurrency_go_course/internal/config"
+	"concurrency_go_course/internal/replication"
 	"concurrency_go_course/internal/storage/wal"
 	"concurrency_go_course/pkg/logger"
 
@@ -20,8 +21,7 @@ type Storage interface {
 }
 
 type storage struct {
-	engine Engine
-	// replica      Replica
+	engine            Engine
 	replicationStream chan []wal.Request
 	wal               *wal.WAL
 	isMasterRepl      bool
@@ -46,7 +46,7 @@ func New(engine Engine, wal *wal.WAL, cfg *config.Config,
 		engine:            engine,
 		wal:               wal,
 		replicationStream: replStream,
-		isMasterRepl:      replicationType == "master",
+		isMasterRepl:      replicationType == replication.ReplicaTypeMaster,
 	}
 
 	replication := cfg.Replication
@@ -69,12 +69,14 @@ func New(engine Engine, wal *wal.WAL, cfg *config.Config,
 		stor.Restore(requests)
 	}
 
-	go func() {
-		for request := range replStream {
-			logger.Debug("applying request from replication stream")
-			stor.Restore(request)
-		}
-	}()
+	if replStream != nil {
+		go func() {
+			for request := range replStream {
+				logger.Debug("applying request from replication stream")
+				stor.Restore(request)
+			}
+		}()
+	}
 
 	return stor, nil
 }

@@ -43,12 +43,14 @@ func NewReplicationClient(
 
 func (s *Slave) Start(ctx context.Context) error {
 	logger.Debug("replication client was started")
+	fmt.Println("s is ", s)
 	ticker := time.NewTicker(s.syncInterval)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
+			logger.Debug("replication client stopping")
 			s.connection.Close()
 			return nil
 		default:
@@ -59,6 +61,7 @@ func (s *Slave) Start(ctx context.Context) error {
 			s.syncWithMaster()
 
 		case <-ctx.Done():
+			logger.Debug("replication client stopping")
 			s.connection.Close()
 			return nil
 		}
@@ -66,7 +69,6 @@ func (s *Slave) Start(ctx context.Context) error {
 }
 
 func (s *Slave) ReplicationStream() chan []wal.Request {
-	fmt.Println("slave ", s)
 	return s.stream
 }
 

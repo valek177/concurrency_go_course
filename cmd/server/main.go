@@ -3,12 +3,16 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
+	"os/signal"
 	"sync"
+	"syscall"
 
 	"concurrency_go_course/internal/app"
 	"concurrency_go_course/internal/config"
 	"concurrency_go_course/internal/network"
+	"concurrency_go_course/internal/replication"
 	"concurrency_go_course/pkg/logger"
 )
 
@@ -18,11 +22,6 @@ var (
 )
 
 func main() {
-	// ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	// defer cancel()
-
-	ctx := context.Background()
-
 	configPath := flag.String("config-path", configPathMaster, "path to config file")
 	flag.Parse()
 
@@ -30,6 +29,10 @@ func main() {
 	if err != nil {
 		log.Fatal("unable to start server: unable to read cfg")
 	}
+
+	ctx, cancel := signal.NotifyContext(context.Background(),
+		syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	defer cancel()
 
 	logger.InitLogger(cfg.Logging.Level, cfg.Logging.Output)
 	logger.Debug("init logger")
@@ -45,17 +48,28 @@ func main() {
 	}
 
 	wg := sync.WaitGroup{}
-	wg.Add(3)
-	if wal != nil && walCfg != nil && walCfg.WalConfig != nil {
+	if wal != nil && (cfg.Replication == nil ||
+		cfg.Replication != nil &&
+			cfg.Replication.ReplicaType != "" &&
+			cfg.Replication.ReplicaType == replication.ReplicaTypeMaster) {
+		wg.Add(1)
 		go func() {
-			defer wg.Done()
+			defer func() {
+				fmt.Println("WAL stopping")
+				wg.Done()
+			}()
 
 			logger.Debug("starting WAL")
 			wal.Start(ctx)
 		}()
+
+		wg.Wait()
 	}
 
-	if cfg.Replication != nil {
+	fmt.Println("repl ", repl)
+	if cfg.Replication != nil && repl != nil {
+		logger.Debug("starting replication")
+		wg.Add(1)
 		go func() {
 			defer wg.Done()
 
@@ -64,6 +78,8 @@ func main() {
 				logger.ErrorWithMsg("unable to start replication", err)
 			}
 		}()
+
+		wg.Wait()
 	}
 
 	server, err := network.NewServer(cfg, cfg.Network.Address)
@@ -71,21 +87,12 @@ func main() {
 		log.Fatal("unable to start server")
 	}
 
-	go func() {
-		defer wg.Done()
-		defer func() {
-			_ = server.Close()
-		}()
-
-		server.Run(ctx, func(ctx context.Context, s []byte) []byte {
-			response, err := db.Handle(string(s) + "\n")
-			if err != nil {
-				logger.ErrorWithMsg("unable to handle query:", err)
-				response = err.Error()
-			}
-			return []byte(response)
-		})
-	}()
-
-	wg.Wait()
+	server.Run(ctx, func(ctx context.Context, s []byte) []byte {
+		response, err := db.Handle(string(s) + "\n")
+		if err != nil {
+			logger.ErrorWithMsg("unable to handle query:", err)
+			response = err.Error()
+		}
+		return []byte(response)
+	})
 }

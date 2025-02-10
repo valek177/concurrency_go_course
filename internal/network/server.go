@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"sync"
 	"time"
 
 	"go.uber.org/zap"
@@ -54,30 +55,46 @@ func (s *TCPServer) Run(ctx context.Context, handler TCPHandler) {
 		zap.String("max_message_size", s.cfg.Network.MaxMessageSize),
 		zap.Int("max_connections", s.cfg.Network.MaxConnections))
 
-	for {
-		conn, err := s.listener.Accept()
-		if err != nil {
-			if errors.Is(err, net.ErrClosed) {
-				return
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	go func() {
+		defer wg.Done()
+		defer func() {
+			fmt.Println("Server stopping")
+			_ = s.Close()
+		}()
+
+		for {
+			conn, err := s.listener.Accept()
+			if err != nil {
+				if errors.Is(err, net.ErrClosed) {
+					return
+				}
+
+				logger.ErrorWithMsg("failed to accept", err)
+				continue
 			}
 
-			logger.ErrorWithMsg("failed to accept", err)
-			continue
+			s.semaphore.Acquire()
+			go func(conn net.Conn) {
+				defer s.semaphore.Release()
+
+				defer func() {
+					if r := recover(); r != nil {
+						logger.Error("Recovered. Error:", zap.Any("error", r))
+					}
+				}()
+
+				s.handle(ctx, conn, handler)
+			}(conn)
 		}
+	}()
 
-		s.semaphore.Acquire()
-		go func(conn net.Conn) {
-			defer s.semaphore.Release()
+	<-ctx.Done()
+	s.listener.Close()
 
-			defer func() {
-				if r := recover(); r != nil {
-					logger.Error("Recovered. Error:", zap.Any("error", r))
-				}
-			}()
-
-			s.handle(ctx, conn, handler)
-		}(conn)
-	}
+	wg.Wait()
 }
 
 func (s *TCPServer) handle(ctx context.Context, conn net.Conn, handler TCPHandler) {
@@ -120,11 +137,6 @@ func (s *TCPServer) handle(ctx context.Context, conn net.Conn, handler TCPHandle
 			break
 		}
 		query := string(buf[:cnt])
-		// response, err := s.db.Handle(query)
-		// if err != nil {
-		// 	logger.ErrorWithMsg("unable to handle query:", err)
-		// 	response = err.Error()
-		// }
 
 		logger.Info("Sending response to client")
 		_, err = conn.Write(handler(ctx, []byte(query)))

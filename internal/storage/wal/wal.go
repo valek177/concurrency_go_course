@@ -50,10 +50,6 @@ func New(cfg *config.WALCfg, replType string) (*WAL, error) {
 		return nil, fmt.Errorf("unable to create WAL: cfg is empty")
 	}
 
-	// if replType == "slave" {
-	// 	return &WAL{}, nil
-	// }
-
 	settings, err := walSettings(cfg)
 	if err != nil {
 		return nil, err
@@ -116,7 +112,7 @@ func (w *WAL) Start(ctx context.Context) {
 				logger.Debug("Batch was flushed by buffer")
 			case <-ticker.C:
 				w.flushBatch()
-				// logger.Debug("Batch was flushed by timeout")
+				logger.Debug("Batch was flushed by timeout")
 			}
 		}
 	}()
