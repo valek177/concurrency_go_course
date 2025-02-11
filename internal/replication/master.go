@@ -39,6 +39,14 @@ func (m *Master) ReplicationStream() chan []wal.Request {
 
 // NewReplicationServer creates new master replication server
 func NewReplicationServer(cfg *config.Config, walCfg *config.WALCfg) (*Master, error) {
+	if cfg == nil || cfg.Replication == nil {
+		return nil, fmt.Errorf("config is empty")
+	}
+
+	if walCfg == nil || walCfg.WalConfig == nil {
+		return nil, fmt.Errorf("WAL config is empty")
+	}
+
 	server, err := network.NewServer(cfg, cfg.Replication.MasterAddress)
 	if err != nil {
 		return nil, err

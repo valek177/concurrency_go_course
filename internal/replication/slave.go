@@ -28,6 +28,14 @@ type Slave struct {
 func NewReplicationClient(
 	cfg *config.Config, walCfg *config.WALCfg,
 ) (*Slave, error) {
+	if cfg == nil || cfg.Replication == nil {
+		return nil, fmt.Errorf("config is empty")
+	}
+
+	if walCfg == nil || walCfg.WalConfig == nil {
+		return nil, fmt.Errorf("WAL config is empty")
+	}
+
 	connection, err := network.NewClient(cfg.Replication.MasterAddress)
 	if err != nil {
 		return nil, fmt.Errorf("connection create error: %w", err)
