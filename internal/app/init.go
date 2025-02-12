@@ -43,8 +43,7 @@ func Init(cfg *config.Config, walCfg *config.WALCfg) (
 	if replicaType == replication.ReplicaTypeMaster {
 		replServer, err := replication.NewReplicationServer(cfg, walCfg)
 		if err != nil {
-			logger.ErrorWithMsg("unable to create replication master server:",
-				err)
+			logger.ErrorWithMsg("unable to create replication master server:", err)
 		} else {
 			repl = replServer
 		}
@@ -52,8 +51,7 @@ func Init(cfg *config.Config, walCfg *config.WALCfg) (
 	} else if replicaType == replication.ReplicaTypeSlave {
 		replClient, err := replication.NewReplicationClient(cfg, walCfg)
 		if err != nil {
-			logger.ErrorWithMsg("unable to create replication slave server:",
-				err)
+			logger.ErrorWithMsg("unable to create replication slave server:", err)
 		} else {
 			repl = replClient
 		}
