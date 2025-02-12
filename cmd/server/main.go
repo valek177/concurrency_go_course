@@ -46,7 +46,6 @@ func main() {
 	wg := sync.WaitGroup{}
 	if wal != nil && (cfg.Replication == nil ||
 		cfg.Replication != nil &&
-			cfg.Replication.ReplicaType != "" &&
 			cfg.Replication.ReplicaType == replication.ReplicaTypeMaster) {
 		wg.Add(1)
 		go func() {
