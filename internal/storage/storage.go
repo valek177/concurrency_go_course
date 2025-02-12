@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	"concurrency_go_course/internal/compute"
+	"concurrency_go_course/internal/config"
+	"concurrency_go_course/internal/replication"
 	"concurrency_go_course/internal/storage/wal"
 	"concurrency_go_course/pkg/logger"
 
@@ -19,8 +21,11 @@ type Storage interface {
 }
 
 type storage struct {
-	engine Engine
-	wal    *wal.WAL
+	engine             Engine
+	replicationStream  chan []wal.Request
+	wal                *wal.WAL
+	replicationEnabled bool
+	isMasterRepl       bool
 }
 
 // WAL is interface for write ahead log
@@ -31,21 +36,25 @@ type WAL interface {
 }
 
 // New creates new storage
-func New(engine Engine, wal *wal.WAL) (Storage, error) {
+func New(engine Engine, wal *wal.WAL, cfg *config.Config,
+	replicationType string, replStream chan []wal.Request,
+) (Storage, error) {
 	if engine == nil {
 		return nil, fmt.Errorf("unable to create storage: engine is empty")
 	}
 
-	if wal == nil {
-		logger.Debug("WAL is not used")
-	}
-
 	stor := &storage{
-		engine: engine,
-		wal:    wal,
+		engine:            engine,
+		wal:               wal,
+		replicationStream: replStream,
+		isMasterRepl:      replicationType == replication.ReplicaTypeMaster,
 	}
 
-	if stor.wal != nil {
+	if cfg.Replication != nil {
+		stor.replicationEnabled = true
+	}
+
+	if wal != nil {
 		requests, err := stor.wal.Recover()
 		if err != nil {
 			logger.ErrorWithMsg("unable to get requests from WAL", err)
@@ -54,11 +63,24 @@ func New(engine Engine, wal *wal.WAL) (Storage, error) {
 		}
 	}
 
+	if stor.replicationEnabled && replStream != nil {
+		go func() {
+			for request := range replStream {
+				logger.Debug("applying request from replication stream")
+				stor.Restore(request)
+			}
+		}()
+	}
+
 	return stor, nil
 }
 
 // Set sets new value
 func (s *storage) Set(key, value string) error {
+	if s.replicationEnabled && !s.isMasterRepl {
+		return fmt.Errorf("unable to execute set command on slave")
+	}
+
 	if s.wal != nil {
 		err := s.wal.Set(key, value)
 		if err != nil {
@@ -77,6 +99,10 @@ func (s *storage) Get(key string) (string, bool) {
 
 // Del deletes key
 func (s *storage) Del(key string) error {
+	if !s.isMasterRepl {
+		return fmt.Errorf("unable to execute delete command on slave")
+	}
+
 	if s.wal != nil {
 		if err := s.wal.Del(key); err != nil {
 			return err

@@ -13,6 +13,8 @@ type MockFileLib interface {
 	WriteFile(file *os.File, data []byte) (int, error)
 	DataFromFiles(dir string, filenames []string) ([][]byte, error)
 	FilenamesFromDir(dir string) ([]string, error)
+	SegmentNext(dir, filename string) (string, error)
+	SegmentLast(dir string) (string, error)
 }
 
 type mockfilelib struct{}
@@ -85,4 +87,31 @@ func (f *mockfilelib) FilenamesFromDir(dir string) ([]string, error) {
 	slices.Sort(fileNames)
 
 	return fileNames, nil
+}
+
+func (f *mockfilelib) SegmentLast(dir string) (string, error) {
+	wals, err := f.FilenamesFromDir(dir)
+	if err != nil {
+		return "", err
+	}
+	if len(wals) == 0 {
+		return "", fmt.Errorf("no segments found")
+	}
+	return wals[len(wals)-1], nil
+}
+
+func (f *mockfilelib) SegmentNext(dir, filename string) (string, error) {
+	wals, err := f.FilenamesFromDir(dir)
+	if err != nil {
+		return "", err
+	}
+
+	// Get newest WAL
+	for i := len(wals) - 1; i >= 0; i-- {
+		if wals[i] > filename {
+			return wals[i], nil
+		}
+	}
+
+	return "", fmt.Errorf("unable to find next segment")
 }

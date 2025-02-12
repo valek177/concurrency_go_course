@@ -2,19 +2,19 @@ engine:
   type: "in_memory"
   partitions_number: 8
 network:
-  address: "127.0.0.1:3223"
+  address: "127.0.0.1:3224"
   max_connections: 100
   max_message_size: "4KB"
   idle_timeout: 5m
 logging:
   level: "debug"
-  output: "log/output.log"
+  output: "log/output_slave.log"
 wal:
   flushing_batch_size: 100
   flushing_batch_timeout: "10ms"
-  max_segment_size: "10MB"
-  data_directory: "tmp"
+  max_segment_size: "10B"
+  data_directory: "tmp1"
 replication:
-  replica_type: "master"
+  replica_type: "slave"
   master_address: "127.0.0.1:3232"
   sync_interval: "6s"
