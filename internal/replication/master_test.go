@@ -139,7 +139,8 @@ func TestNewServerOk(t *testing.T) {
 func TestNewServerStart(t *testing.T) {
 	logger.MockLogger()
 
-	ctx := context.TODO()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	replMasterAddr := "127.0.0.1:9998"
 

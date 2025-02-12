@@ -60,7 +60,7 @@ func NewReplicationServer(cfg *config.Config, walCfg *config.WALCfg) (*Master, e
 }
 
 // Start starts master
-func (m *Master) Start(ctx context.Context) error {
+func (m *Master) Start(ctx context.Context) {
 	logger.Debug("replication master server was started")
 	m.server.Run(ctx, func(ctx context.Context, requestData []byte) []byte {
 		if ctx.Err() != nil {
@@ -81,8 +81,6 @@ func (m *Master) Start(ctx context.Context) error {
 
 		return responseData
 	})
-
-	return nil
 }
 
 func (m *Master) lastSegment(request SlaveRequest) MasterResponse {

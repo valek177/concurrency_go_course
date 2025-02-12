@@ -65,10 +65,7 @@ func main() {
 		go func() {
 			defer wg.Done()
 
-			err = repl.Start(ctx)
-			if err != nil {
-				logger.ErrorWithMsg("unable to start replication", err)
-			}
+			repl.Start(ctx)
 		}()
 	}
 

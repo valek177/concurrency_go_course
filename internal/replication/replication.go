@@ -15,7 +15,7 @@ const (
 
 // Replication is interface for replication
 type Replication interface {
-	Start(context.Context) error
+	Start(context.Context)
 	IsMaster() bool
 	ReplicationStream() chan []wal.Request
 }

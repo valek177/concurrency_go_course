@@ -12,6 +12,8 @@ import (
 	"concurrency_go_course/internal/network"
 	"concurrency_go_course/internal/storage/wal"
 	"concurrency_go_course/pkg/logger"
+
+	"go.uber.org/zap"
 )
 
 // Slave is struct for slave replication
@@ -52,17 +54,21 @@ func NewReplicationClient(
 }
 
 // Start starts slave
-func (s *Slave) Start(ctx context.Context) error {
-	logger.Debug("replication client was started")
+func (s *Slave) Start(ctx context.Context) {
+	logger.Debug("replication client was started",
+		zap.String("sync_interval", s.syncInterval.String()))
 	ticker := time.NewTicker(s.syncInterval)
-	defer ticker.Stop()
+	defer func() {
+		ticker.Stop()
+		s.connection.Close()
+	}()
 
 	for {
 		select {
 		case <-ctx.Done():
 			logger.Debug("replication client stopping")
 			s.connection.Close()
-			return nil
+			return
 		default:
 		}
 
@@ -73,7 +79,7 @@ func (s *Slave) Start(ctx context.Context) error {
 		case <-ctx.Done():
 			logger.Debug("replication client stopping")
 			s.connection.Close()
-			return nil
+			return
 		}
 	}
 }
