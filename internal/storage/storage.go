@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"concurrency_go_course/internal/compute"
-	"concurrency_go_course/internal/config"
 	"concurrency_go_course/internal/replication"
 	"concurrency_go_course/internal/storage/wal"
 	"concurrency_go_course/pkg/logger"
@@ -21,11 +20,10 @@ type Storage interface {
 }
 
 type storage struct {
-	engine             Engine
-	replicationStream  chan []wal.Request
-	wal                *wal.WAL
-	replicationEnabled bool
-	isMasterRepl       bool
+	engine            Engine
+	replicationStream chan []wal.Request
+	wal               *wal.WAL
+	isMasterRepl      bool
 }
 
 // WAL is interface for write ahead log
@@ -36,7 +34,7 @@ type WAL interface {
 }
 
 // New creates new storage
-func New(engine Engine, wal *wal.WAL, cfg *config.Config,
+func New(engine Engine, wal *wal.WAL,
 	replicationType string, replStream chan []wal.Request,
 ) (Storage, error) {
 	if engine == nil {
@@ -50,10 +48,6 @@ func New(engine Engine, wal *wal.WAL, cfg *config.Config,
 		isMasterRepl:      replicationType == replication.ReplicaTypeMaster,
 	}
 
-	if cfg.Replication != nil {
-		stor.replicationEnabled = true
-	}
-
 	if wal != nil {
 		requests, err := stor.wal.Recover()
 		if err != nil {
@@ -63,7 +57,7 @@ func New(engine Engine, wal *wal.WAL, cfg *config.Config,
 		}
 	}
 
-	if stor.replicationEnabled && replStream != nil {
+	if replStream != nil {
 		go func() {
 			for request := range replStream {
 				logger.Debug("applying request from replication stream")
@@ -77,7 +71,7 @@ func New(engine Engine, wal *wal.WAL, cfg *config.Config,
 
 // Set sets new value
 func (s *storage) Set(key, value string) error {
-	if s.replicationEnabled && !s.isMasterRepl {
+	if !s.isMasterRepl {
 		return fmt.Errorf("unable to execute set command on slave")
 	}
 

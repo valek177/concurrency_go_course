@@ -14,7 +14,7 @@ import (
 
 // Init initializes new database and wal service and other objects
 func Init(cfg *config.Config, walCfg *config.WALCfg) (
-	database.Database, *wal.WAL, replication.Replication, error,
+	database.Database, *wal.WAL, *replication.Replication, error,
 ) {
 	var err error
 	var replicaType string
@@ -38,14 +38,14 @@ func Init(cfg *config.Config, walCfg *config.WALCfg) (
 		}
 	}
 
-	var repl replication.Replication
+	repl := &replication.Replication{}
 
 	if replicaType == replication.ReplicaTypeMaster {
 		replServer, err := replication.NewReplicationServer(cfg, walCfg)
 		if err != nil {
 			logger.ErrorWithMsg("unable to create replication master server:", err)
 		} else {
-			repl = replServer
+			repl.Master = replServer
 		}
 
 	} else if replicaType == replication.ReplicaTypeSlave {
@@ -53,19 +53,18 @@ func Init(cfg *config.Config, walCfg *config.WALCfg) (
 		if err != nil {
 			logger.ErrorWithMsg("unable to create replication slave server:", err)
 		} else {
-			repl = replClient
+			repl.Slave = replClient
 		}
 	}
 
 	var replStream chan []wal.Request
-	if repl != nil && !repl.IsMaster() {
-		replStream = repl.ReplicationStream()
+	if repl.Slave != nil {
+		replStream = repl.Slave.ReplicationStream()
 	}
 
 	engine := storage.NewEngine(cfg.Engine.PartitionsNumber)
 
-	storage, err := storage.New(engine, walObj, cfg, replicaType,
-		replStream)
+	storage, err := storage.New(engine, walObj, replicaType, replStream)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("unable to init storage: %v", err)
 	}

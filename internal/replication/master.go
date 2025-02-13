@@ -9,7 +9,6 @@ import (
 	"concurrency_go_course/internal/config"
 	"concurrency_go_course/internal/filesystem"
 	"concurrency_go_course/internal/network"
-	"concurrency_go_course/internal/storage/wal"
 	"concurrency_go_course/pkg/logger"
 
 	"go.uber.org/zap"
@@ -30,11 +29,6 @@ type TCPServer interface {
 // IsMaster returns flag
 func (m *Master) IsMaster() bool {
 	return true
-}
-
-// ReplicationStream returns replication stream channel
-func (m *Master) ReplicationStream() chan []wal.Request {
-	return nil
 }
 
 // NewReplicationServer creates new master replication server

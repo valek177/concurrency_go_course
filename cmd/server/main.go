@@ -58,14 +58,23 @@ func main() {
 		}()
 	}
 
-	if cfg.Replication != nil && repl != nil {
+	if cfg.Replication != nil {
 		logger.Debug("starting replication")
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		if repl.Master != nil {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
 
-			repl.Start(ctx)
-		}()
+				repl.Master.Start(ctx)
+			}()
+		} else if repl.Slave != nil {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+
+				repl.Slave.Start(ctx)
+			}()
+		}
 	}
 
 	server, err := network.NewServer(cfg, cfg.Network.Address)

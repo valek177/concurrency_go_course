@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"concurrency_go_course/internal/compute"
-	"concurrency_go_course/internal/config"
 	"concurrency_go_course/internal/storage"
 	"concurrency_go_course/internal/storage/mock"
 	"concurrency_go_course/pkg/logger"
@@ -22,27 +21,9 @@ func TestServiceHandleNeg(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	cfg := &config.Config{
-		Engine: &config.EngineConfig{
-			Type:             "in_memory",
-			PartitionsNumber: 256,
-		},
-		Network: &config.NetworkConfig{
-			Address:        "127.0.0.1:7777",
-			MaxConnections: 100,
-			MaxMessageSize: "4KB",
-			IdleTimeout:    "5m",
-		},
-		Logging: &config.LoggingConfig{
-			Level:  "info",
-			Output: "log/output.log",
-		},
-		Replication: &config.ReplicationConfig{},
-	}
-
 	mockEngine := mock.NewMockEngine(ctrl)
 
-	storage, err := storage.New(mockEngine, nil, cfg, "", nil)
+	storage, err := storage.New(mockEngine, nil, "", nil)
 	if err != nil {
 		t.Errorf("unable to create storage")
 	}
@@ -93,29 +74,9 @@ func TestServiceHandlePos(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	cfg := &config.Config{
-		Engine: &config.EngineConfig{
-			Type:             "in_memory",
-			PartitionsNumber: 256,
-		},
-		Network: &config.NetworkConfig{
-			Address:        "127.0.0.1:7777",
-			MaxConnections: 100,
-			MaxMessageSize: "4KB",
-			IdleTimeout:    "5m",
-		},
-		Logging: &config.LoggingConfig{
-			Level:  "info",
-			Output: "log/output.log",
-		},
-		Replication: &config.ReplicationConfig{
-			ReplicaType: "master",
-		},
-	}
-
 	mockEngine := mock.NewMockEngine(ctrl)
 
-	storage, err := storage.New(mockEngine, nil, cfg, "master", nil)
+	storage, err := storage.New(mockEngine, nil, "master", nil)
 	if err != nil {
 		t.Errorf("unable to create storage")
 	}

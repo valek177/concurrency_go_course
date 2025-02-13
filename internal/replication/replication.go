@@ -1,11 +1,5 @@
 package replication
 
-import (
-	"context"
-
-	"concurrency_go_course/internal/storage/wal"
-)
-
 const (
 	// ReplicaTypeMaster is replication type master
 	ReplicaTypeMaster = "master"
@@ -13,9 +7,8 @@ const (
 	ReplicaTypeSlave = "slave"
 )
 
-// Replication is interface for replication
-type Replication interface {
-	Start(context.Context)
-	IsMaster() bool
-	ReplicationStream() chan []wal.Request
+// Replication is struct for replication
+type Replication struct {
+	Slave  *Slave
+	Master *Master
 }
