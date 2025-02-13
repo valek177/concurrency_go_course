@@ -23,7 +23,7 @@ func TestServiceHandleNeg(t *testing.T) {
 
 	mockEngine := mock.NewMockEngine(ctrl)
 
-	storage, err := storage.New(mockEngine, nil)
+	storage, err := storage.New(mockEngine, nil, "", nil)
 	if err != nil {
 		t.Errorf("unable to create storage")
 	}
@@ -76,7 +76,7 @@ func TestServiceHandlePos(t *testing.T) {
 
 	mockEngine := mock.NewMockEngine(ctrl)
 
-	storage, err := storage.New(mockEngine, nil)
+	storage, err := storage.New(mockEngine, nil, "master", nil)
 	if err != nil {
 		t.Errorf("unable to create storage")
 	}

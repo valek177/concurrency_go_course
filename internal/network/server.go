@@ -1,91 +1,115 @@
 package network
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
+	"sync"
 	"time"
 
 	"go.uber.org/zap"
 
 	"concurrency_go_course/internal/config"
-	"concurrency_go_course/internal/database"
 	"concurrency_go_course/pkg/logger"
 	"concurrency_go_course/pkg/parser"
 	"concurrency_go_course/pkg/sema"
 )
 
+// TCPHandler is a func for data handling
+type TCPHandler = func(context.Context, []byte) []byte
+
 // TCPServer is a struct for TCP server
 type TCPServer struct {
 	listener net.Listener
-	db       database.Database
+	address  string
 	cfg      *config.Config
 
 	semaphore *sema.Semaphore
 }
 
 // NewServer returns new TCP server
-func NewServer(db database.Database, cfg *config.Config) (*TCPServer, error) {
-	if db == nil {
-		return nil, fmt.Errorf("database is empty")
-	}
-
+func NewServer(cfg *config.Config, address string) (*TCPServer, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("config is empty")
 	}
 
-	listener, err := net.Listen("tcp", cfg.Network.Address)
+	if address == "" {
+		return nil, fmt.Errorf("address is empty")
+	}
+
+	listener, err := net.Listen("tcp", address)
 	if err != nil {
 		return nil, fmt.Errorf("failed to listen: %w", err)
 	}
 
 	return &TCPServer{
 		listener: listener,
-		db:       db,
 		cfg:      cfg,
+		address:  address,
 
 		semaphore: sema.NewSemaphore(cfg.Network.MaxConnections),
 	}, nil
 }
 
 // Run starts TCP server
-func (s *TCPServer) Run() {
-	fmt.Println("Server is running on", s.cfg.Network.Address)
-	logger.Debug("Start server on", zap.String("address", s.cfg.Network.Address),
+func (s *TCPServer) Run(ctx context.Context, handler TCPHandler) {
+	fmt.Println("Server is running on", s.address)
+	logger.Debug("Start server on", zap.String("address", s.address),
 		zap.String("idle_timeout", s.cfg.Network.IdleTimeout),
 		zap.String("max_message_size", s.cfg.Network.MaxMessageSize),
 		zap.Int("max_connections", s.cfg.Network.MaxConnections))
 
-	for {
-		conn, err := s.listener.Accept()
-		if err != nil {
-			if errors.Is(err, net.ErrClosed) {
-				return
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	go func() {
+		defer wg.Done()
+		defer func() {
+			_ = s.Close()
+		}()
+
+		for {
+			conn, err := s.listener.Accept()
+			if err != nil {
+				if errors.Is(err, net.ErrClosed) {
+					return
+				}
+
+				logger.ErrorWithMsg("failed to accept", err)
+				continue
 			}
 
-			logger.ErrorWithMsg("failed to accept", err)
-			continue
+			s.semaphore.Acquire()
+			go func(conn net.Conn) {
+				defer s.semaphore.Release()
+
+				defer func() {
+					if r := recover(); r != nil {
+						logger.Error("Recovered. Error:", zap.Any("error", r))
+					}
+				}()
+
+				s.handle(ctx, conn, handler)
+			}(conn)
 		}
+	}()
 
-		s.semaphore.Acquire()
-		go func(conn net.Conn) {
-			defer s.semaphore.Release()
+	<-ctx.Done()
+	_ = s.listener.Close()
 
-			defer func() {
-				if r := recover(); r != nil {
-					logger.Error("Recovered. Error:", zap.Any("error", r))
-				}
-			}()
-
-			s.handle(conn)
-		}(conn)
-	}
+	wg.Wait()
 }
 
-func (s *TCPServer) handle(conn net.Conn) {
+func (s *TCPServer) handle(ctx context.Context, conn net.Conn, handler TCPHandler) {
 	defer func() {
 		_ = conn.Close()
 	}()
+
+	if handler == nil {
+		logger.Error("unable to handle request: no handler")
+		return
+	}
 
 	maxMessageSize, err := parser.ParseSize(s.cfg.Network.MaxMessageSize)
 	if err != nil {
@@ -117,14 +141,9 @@ func (s *TCPServer) handle(conn net.Conn) {
 			break
 		}
 		query := string(buf[:cnt])
-		response, err := s.db.Handle(query)
-		if err != nil {
-			logger.ErrorWithMsg("unable to handle query:", err)
-			response = err.Error()
-		}
 
-		logger.Info("Sending response to client", zap.String("message", response))
-		_, err = conn.Write([]byte(response))
+		logger.Info("Sending response to client")
+		_, err = conn.Write(handler(ctx, []byte(query)))
 		if err != nil {
 			logger.ErrorWithMsg("unable to write response:", err)
 		}

@@ -1,6 +1,7 @@
 package network
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"sync"
@@ -9,9 +10,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"concurrency_go_course/internal/app"
 	"concurrency_go_course/internal/config"
-	"concurrency_go_course/internal/database"
 	"concurrency_go_course/pkg/logger"
 )
 
@@ -20,12 +19,15 @@ func TestNewServerNil(t *testing.T) {
 
 	logger.MockLogger()
 
+	serverAddr := "127.0.0.1:7777"
+
 	cfg := &config.Config{
 		Engine: &config.EngineConfig{
-			Type: "in_memory",
+			Type:             "in_memory",
+			PartitionsNumber: 256,
 		},
 		Network: &config.NetworkConfig{
-			Address:        "127.0.0.1:7777",
+			Address:        serverAddr,
 			MaxConnections: 100,
 			MaxMessageSize: "4KB",
 			IdleTimeout:    "5m",
@@ -34,40 +36,38 @@ func TestNewServerNil(t *testing.T) {
 			Level:  "info",
 			Output: "log/output.log",
 		},
-	}
-
-	dbService, _, err := app.Init(cfg, nil)
-	if err != nil {
-		t.Errorf("want nil error; got %+v", err)
+		Replication: &config.ReplicationConfig{
+			ReplicaType: "master",
+		},
 	}
 
 	tests := []struct {
-		name string
-		cfg  *config.Config
-		db   database.Database
+		name    string
+		cfg     *config.Config
+		address string
 
 		resultServer  *TCPServer
 		expectedError error
 	}{
 		{
-			name:          "New server without DB service",
-			cfg:           cfg,
-			db:            nil,
-			resultServer:  nil,
-			expectedError: fmt.Errorf("database is empty"),
-		},
-		{
 			name:          "New server without config",
 			cfg:           nil,
-			db:            dbService,
+			address:       serverAddr,
 			resultServer:  nil,
 			expectedError: fmt.Errorf("config is empty"),
+		},
+		{
+			name:          "New server without address",
+			cfg:           cfg,
+			address:       "",
+			resultServer:  nil,
+			expectedError: fmt.Errorf("address is empty"),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			server, err := NewServer(tt.db, tt.cfg)
+			server, err := NewServer(tt.cfg, tt.address)
 			assert.Nil(t, server)
 			assert.Equal(t, tt.expectedError, err)
 		})
@@ -79,12 +79,14 @@ func TestNewServer(t *testing.T) {
 
 	logger.MockLogger()
 
+	serverAddr := "127.0.0.1:8888"
+
 	cfg := &config.Config{
 		Engine: &config.EngineConfig{
 			Type: "in_memory",
 		},
 		Network: &config.NetworkConfig{
-			Address:        "127.0.0.1:8888",
+			Address:        serverAddr,
 			MaxConnections: 100,
 			MaxMessageSize: "4KB",
 			IdleTimeout:    "5m",
@@ -95,94 +97,25 @@ func TestNewServer(t *testing.T) {
 		},
 	}
 
-	db, _, err := app.Init(cfg, nil)
-	if err != nil {
-		t.Errorf("want nil error; got %+v", err)
-	}
-
 	tests := []struct {
 		name          string
 		cfg           *config.Config
-		db            database.Database
 		resultServer  *TCPServer
 		expectedError error
 	}{
 		{
 			name: "New server with config",
-			db:   db,
 			cfg:  cfg,
 			resultServer: &TCPServer{
-				db:  db,
-				cfg: cfg,
+				address: serverAddr,
+				cfg:     cfg,
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			server, err := NewServer(tt.db, tt.cfg)
-			assert.Nil(t, err)
-			assert.Equal(t, tt.resultServer.cfg, server.cfg)
-		})
-	}
-}
-
-func TestNewServerWithWAL(t *testing.T) {
-	t.Parallel()
-
-	logger.MockLogger()
-
-	cfg := &config.Config{
-		Engine: &config.EngineConfig{
-			Type: "in_memory",
-		},
-		Network: &config.NetworkConfig{
-			Address:        "127.0.0.1:7777",
-			MaxConnections: 100,
-			MaxMessageSize: "4KB",
-			IdleTimeout:    "5m",
-		},
-		Logging: &config.LoggingConfig{
-			Level:  "info",
-			Output: "log/output.log",
-		},
-	}
-
-	walCfg := &config.WALCfg{
-		WalConfig: &config.WALSettings{
-			FlushingBatchSize:    10,
-			FlushingBatchTimeout: "10ms",
-			MaxSegmentSize:       "20",
-			DataDirectory:        "tmp",
-		},
-	}
-
-	db, _, err := app.Init(cfg, walCfg)
-	if err != nil {
-		t.Errorf("want nil error; got %+v", err)
-	}
-
-	tests := []struct {
-		name          string
-		cfg           *config.Config
-		db            database.Database
-		resultServer  *TCPServer
-		expectedError error
-	}{
-		{
-			name: "New server with config",
-			db:   db,
-			cfg:  cfg,
-			resultServer: &TCPServer{
-				db:  db,
-				cfg: cfg,
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			server, err := NewServer(tt.db, tt.cfg)
+			server, err := NewServer(tt.cfg, serverAddr)
 			assert.Nil(t, err)
 			assert.Equal(t, tt.resultServer.cfg, server.cfg)
 		})
@@ -193,6 +126,8 @@ func TestRun(t *testing.T) {
 	t.Parallel()
 
 	logger.MockLogger()
+
+	ctx := context.Background()
 
 	db := NewMockDatabase()
 
@@ -214,20 +149,20 @@ func TestRun(t *testing.T) {
 		},
 	}
 
-	dbService, _, err := app.Init(&cfg, nil)
-	if err != nil {
-		t.Errorf("want nil error; got %+v", err)
-	}
-
-	server, err := NewServer(dbService, &cfg)
-	server.db = db
+	server, err := NewServer(&cfg, addr)
 	if err != nil {
 		t.Errorf("want nil error; got %+v", err)
 	}
 
 	time.Sleep(100 * time.Millisecond)
 
-	go server.Run()
+	go server.Run(ctx, func(_ context.Context, s []byte) []byte {
+		response, err := db.Handle(string(s))
+		if err != nil {
+			response = err.Error()
+		}
+		return []byte(response)
+	})
 
 	wg := sync.WaitGroup{}
 	wg.Add(2)
