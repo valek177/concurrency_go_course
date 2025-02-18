@@ -2,11 +2,12 @@ package concurrencygocourse
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"time"
 )
 
-// Mock собес go concurrency: задача: написать логику. Есть несколько хостов, синхронная репликация. 
+// Mock собес go concurrency: задача: написать логику. Есть несколько хостов, синхронная репликация.
 // Нужно вернуть результат запроса из БД с к-либо хоста.
 // Нюансы: запись дб на каждой ноде, значит если одна вернула Not found, то этой записи нет нигде.
 // Интерфейс мб лишним. Продекомпозировать функцию.
@@ -48,12 +49,13 @@ func ConcurrentRequest(ctx context.Context, request string, replicas []DB) (stri
 
 			select {
 			case <-ctx.Done():
-				out <- result {
+				out <- result{
 					err: ctx.Err(),
 				}
-			
-			case x <- check:
+
+			case x := <-check:
 				out <- x
+			}
 		}(ctx)
 	}
 
